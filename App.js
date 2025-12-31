@@ -48,6 +48,9 @@ export default function App() {
   // LLM Enhancement Options
   const [removeComments, setRemoveComments] = useState(true);
   const [removeExtraWhitespace, setRemoveExtraWhitespace] = useState(true);
+  
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
   const [includeOnlyCode, setIncludeOnlyCode] = useState(false);
   const [maxFileSize, setMaxFileSize] = useState('100');
   const [tokenCount, setTokenCount] = useState(0);
@@ -407,6 +410,99 @@ export default function App() {
     }
   };
 
+  // Drag and drop handlers (web only)
+  const handleDragEnter = (e) => {
+    if (Platform.OS !== 'web') return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    if (Platform.OS !== 'web') return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    if (Platform.OS !== 'web') return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e) => {
+    if (Platform.OS !== 'web') return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    try {
+      setLoading(true);
+      setOutput('');
+      setDirStructure('');
+
+      const files = Array.from(e.dataTransfer.files);
+      
+      if (files.length === 0) {
+        Alert.alert('No files', 'Please drop at least one file');
+        setLoading(false);
+        return;
+      }
+
+      let combinedText = `Local Files (Drag & Drop)\n`;
+      combinedText += `Total files: ${files.length}\n`;
+      combinedText += `Generated: ${new Date().toISOString()}\n`;
+      combinedText += `\n${'='.repeat(80)}\n`;
+      combinedText += `FILE CONTENTS:\n`;
+      combinedText += `${'='.repeat(80)}\n\n`;
+
+      for (const file of files) {
+        try {
+          // Check if file should be included
+          if (includeOnlyCode && !isCodeFile(file.name)) {
+            continue;
+          }
+
+          // Check file size
+          const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024;
+          if (file.size && file.size > maxFileSizeBytes) {
+            combinedText += `\n${'─'.repeat(80)}\n`;
+            combinedText += `FILE: ${file.name} [SKIPPED - Size: ${Math.round(file.size / 1024)}KB exceeds limit]\n`;
+            combinedText += `${'─'.repeat(80)}\n\n`;
+            continue;
+          }
+
+          // Read file content
+          const content = await file.text();
+          const optimizedContent = optimizeContent(content, file.name);
+
+          combinedText += `\n${'─'.repeat(80)}\n`;
+          combinedText += `FILE: ${file.name}\n`;
+          if (file.size) {
+            combinedText += `Size: ${Math.round(file.size / 1024)}KB | `;
+          }
+          combinedText += `Lines: ${optimizedContent.split('\n').length}\n`;
+          combinedText += `${'─'.repeat(80)}\n`;
+          combinedText += optimizedContent;
+          combinedText += `\n`;
+        } catch (error) {
+          console.log(`Error reading ${file.name}:`, error);
+          combinedText += `\n${'─'.repeat(80)}\n`;
+          combinedText += `FILE: ${file.name} [ERROR - Could not read as text file]\n`;
+          combinedText += `${'─'.repeat(80)}\n\n`;
+        }
+      }
+
+      setOutput(combinedText);
+      setTokenCount(estimateTokens(combinedText));
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to process dropped files');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -528,6 +624,25 @@ export default function App() {
           >
             <Text style={styles.buttonText}>📁 Pick Local Files</Text>
           </TouchableOpacity>
+
+          {Platform.OS === 'web' && (
+            <View 
+              style={[styles.dropZone, isDragging && styles.dropZoneActive]}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <Text style={styles.dropZoneText}>
+                {isDragging ? '📥 Drop files here' : '🖱️ Or drag & drop files here'}
+              </Text>
+              {!isDragging && (
+                <Text style={styles.dropZoneSubtext}>
+                  Supports multiple files
+                </Text>
+              )}
+            </View>
+          )}
 
           <TouchableOpacity 
             style={[styles.button, styles.copyButton]} 
@@ -730,5 +845,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#555',
+  },
+  dropZone: {
+    marginTop: 15,
+    padding: 30,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#007AFF',
+    borderRadius: 8,
+    backgroundColor: '#f0f8ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  dropZoneActive: {
+    backgroundColor: '#e0f0ff',
+    borderColor: '#0051d5',
+    borderWidth: 3,
+  },
+  dropZoneText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  dropZoneSubtext: {
+    fontSize: 13,
+    color: '#666',
   },
 });
