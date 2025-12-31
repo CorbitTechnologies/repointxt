@@ -11,6 +11,8 @@ import {
   Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { StatusBar } from 'expo-status-bar';
 
 // Default ignore patterns
@@ -324,16 +326,90 @@ export default function App() {
     Alert.alert('Directory Structure', dirStructure);
   };
 
+  const pickLocalFiles = async () => {
+    try {
+      setLoading(true);
+      setOutput('');
+      setDirStructure('');
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) {
+        setLoading(false);
+        return;
+      }
+
+      let combinedText = `Local Files\n`;
+      combinedText += `Total files: ${result.assets?.length || 1}\n`;
+      combinedText += `Generated: ${new Date().toISOString()}\n`;
+      combinedText += `\n${'='.repeat(80)}\n`;
+      combinedText += `FILE CONTENTS:\n`;
+      combinedText += `${'='.repeat(80)}\n\n`;
+
+      const files = result.assets || [result];
+
+      for (const file of files) {
+        try {
+          // Check if file should be included
+          if (includeOnlyCode && !isCodeFile(file.name)) {
+            continue;
+          }
+
+          // Check file size
+          const maxFileSizeBytes = parseInt(maxFileSize) * 1024;
+          if (file.size && file.size > maxFileSizeBytes) {
+            combinedText += `\n${'─'.repeat(80)}\n`;
+            combinedText += `FILE: ${file.name} [SKIPPED - Size: ${Math.round(file.size / 1024)}KB exceeds limit]\n`;
+            combinedText += `${'─'.repeat(80)}\n\n`;
+            continue;
+          }
+
+          // Read file content
+          const content = await FileSystem.readAsStringAsync(file.uri);
+          const optimizedContent = optimizeContent(content, file.name);
+
+          combinedText += `\n${'─'.repeat(80)}\n`;
+          combinedText += `FILE: ${file.name}\n`;
+          if (file.size) {
+            combinedText += `Size: ${Math.round(file.size / 1024)}KB | `;
+          }
+          combinedText += `Lines: ${optimizedContent.split('\n').length}\n`;
+          combinedText += `${'─'.repeat(80)}\n`;
+          combinedText += optimizedContent;
+          combinedText += `\n`;
+        } catch (error) {
+          console.log(`Error reading ${file.name}:`, error);
+          combinedText += `\n${'─'.repeat(80)}\n`;
+          combinedText += `FILE: ${file.name} [ERROR - Could not read file]\n`;
+          combinedText += `${'─'.repeat(80)}\n\n`;
+        }
+      }
+
+      setOutput(combinedText);
+      setTokenCount(estimateTokens(combinedText));
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to pick files');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>repo2txt</Text>
-          <Text style={styles.subtitle}>Convert repositories to text for LLMs</Text>
+          <Text style={styles.subtitle}>Convert repositories & files to text for LLMs</Text>
+          <Text style={styles.subtitle}>GitHub • Local Files • Token Optimized</Text>
         </View>
 
         <View style={styles.inputSection}>
+          <Text style={styles.sectionTitle}>📦 Source</Text>
           <Text style={styles.label}>GitHub Repository URL</Text>
           <TextInput
             style={styles.input}
@@ -435,6 +511,14 @@ export default function App() {
               <Text style={styles.buttonTextSecondary}>Show Structure</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity 
+            style={[styles.button, styles.localFilesButton]} 
+            onPress={pickLocalFiles}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>📁 Pick Local Files</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity 
             style={[styles.button, styles.copyButton]} 
@@ -546,6 +630,10 @@ const styles = StyleSheet.create({
   },
   copyButton: {
     backgroundColor: '#34C759',
+    marginTop: 10,
+  },
+  localFilesButton: {
+    backgroundColor: '#FF9500',
     marginTop: 10,
   },
   buttonText: {
