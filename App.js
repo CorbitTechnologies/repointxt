@@ -276,7 +276,8 @@ export default function App() {
       result = result.replace(/'''[\s\S]*?'''/g, '');
     }
     
-    // Remove HTML/XML comments
+    // Remove HTML/XML comments from file content during text processing
+    // Note: This is not for HTML sanitization; content is displayed as plain text
     if (filePath.match(/\.(html|xml|vue)$/i)) {
       result = result.replace(/<!--[\s\S]*?-->/g, '');
     }
