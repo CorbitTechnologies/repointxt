@@ -89,7 +89,7 @@ export default function App() {
       };
       
       if (githubToken.trim()) {
-        headers['Authorization'] = `token ${githubToken.trim()}`;
+        headers['Authorization'] = `Bearer ${githubToken.trim()}`;
       }
 
       const treeResponse = await fetch(
@@ -147,7 +147,7 @@ export default function App() {
     combinedText += `FILE CONTENTS:\n`;
     combinedText += `${'='.repeat(80)}\n\n`;
 
-    const maxFileSizeBytes = parseInt(maxFileSize) * 1024; // Convert KB to bytes
+    const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024; // Convert KB to bytes, default 100KB
 
     // Fetch file contents
     for (const file of files) {
@@ -167,15 +167,22 @@ export default function App() {
         
         if (contentResponse.ok) {
           const contentData = await contentResponse.json();
-          const content = atob(contentData.content);
-          const optimizedContent = optimizeContent(content, file.path);
-          
-          combinedText += `\n${'─'.repeat(80)}\n`;
-          combinedText += `FILE: ${file.path}\n`;
-          combinedText += `Size: ${Math.round(file.size / 1024)}KB | Lines: ${optimizedContent.split('\n').length}\n`;
-          combinedText += `${'─'.repeat(80)}\n`;
-          combinedText += optimizedContent;
-          combinedText += `\n`;
+          try {
+            const content = atob(contentData.content);
+            const optimizedContent = optimizeContent(content, file.path);
+            
+            combinedText += `\n${'─'.repeat(80)}\n`;
+            combinedText += `FILE: ${file.path}\n`;
+            combinedText += `Size: ${Math.round(file.size / 1024)}KB | Lines: ${optimizedContent.split('\n').length}\n`;
+            combinedText += `${'─'.repeat(80)}\n`;
+            combinedText += optimizedContent;
+            combinedText += `\n`;
+          } catch (decodeError) {
+            // Handle binary files or invalid base64
+            combinedText += `\n${'─'.repeat(80)}\n`;
+            combinedText += `FILE: ${file.path} [SKIPPED - Binary or non-text file]\n`;
+            combinedText += `${'─'.repeat(80)}\n\n`;
+          }
         }
       } catch (error) {
         console.log(`Error fetching ${file.path}:`, error);
@@ -360,7 +367,7 @@ export default function App() {
           }
 
           // Check file size
-          const maxFileSizeBytes = parseInt(maxFileSize) * 1024;
+          const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024; // Default 100KB
           if (file.size && file.size > maxFileSizeBytes) {
             combinedText += `\n${'─'.repeat(80)}\n`;
             combinedText += `FILE: ${file.name} [SKIPPED - Size: ${Math.round(file.size / 1024)}KB exceeds limit]\n`;
@@ -369,18 +376,27 @@ export default function App() {
           }
 
           // Read file content
-          const content = await FileSystem.readAsStringAsync(file.uri);
-          const optimizedContent = optimizeContent(content, file.name);
+          try {
+            const content = await FileSystem.readAsStringAsync(file.uri, {
+              encoding: FileSystem.EncodingType.UTF8,
+            });
+            const optimizedContent = optimizeContent(content, file.name);
 
-          combinedText += `\n${'─'.repeat(80)}\n`;
-          combinedText += `FILE: ${file.name}\n`;
-          if (file.size) {
-            combinedText += `Size: ${Math.round(file.size / 1024)}KB | `;
+            combinedText += `\n${'─'.repeat(80)}\n`;
+            combinedText += `FILE: ${file.name}\n`;
+            if (file.size) {
+              combinedText += `Size: ${Math.round(file.size / 1024)}KB | `;
+            }
+            combinedText += `Lines: ${optimizedContent.split('\n').length}\n`;
+            combinedText += `${'─'.repeat(80)}\n`;
+            combinedText += optimizedContent;
+            combinedText += `\n`;
+          } catch (readError) {
+            // Handle binary files or encoding errors
+            combinedText += `\n${'─'.repeat(80)}\n`;
+            combinedText += `FILE: ${file.name} [ERROR - Could not read as text file]\n`;
+            combinedText += `${'─'.repeat(80)}\n\n`;
           }
-          combinedText += `Lines: ${optimizedContent.split('\n').length}\n`;
-          combinedText += `${'─'.repeat(80)}\n`;
-          combinedText += optimizedContent;
-          combinedText += `\n`;
         } catch (error) {
           console.log(`Error reading ${file.name}:`, error);
           combinedText += `\n${'─'.repeat(80)}\n`;

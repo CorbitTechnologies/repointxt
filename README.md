@@ -112,12 +112,13 @@ Use a GitHub personal access token to increase rate limits and access private re
 
 ## Future Enhancements
 
-- Local file system support (using file picker)
-- Export to file
+- Export to file (download as .txt)
 - Batch processing multiple repositories
 - Custom formatting templates
-- Advanced filtering rules
+- Advanced filtering rules (regex patterns)
 - Diff view between repository versions
+- Syntax highlighting in preview
+- Progress indicator for large repositories
 
 ## Contributing
 
