@@ -194,17 +194,9 @@ export default function App() {
   };
 
   const buildDirStructure = (tree, patterns) => {
-    const dirs = new Set();
     const files = tree
       .filter(item => !shouldIgnore(item.path, patterns))
       .map(item => item.path);
-
-    files.forEach(path => {
-      const parts = path.split('/');
-      for (let i = 1; i < parts.length; i++) {
-        dirs.add(parts.slice(0, i).join('/'));
-      }
-    });
 
     const structure = {};
     files.forEach(path => {

@@ -79,9 +79,11 @@ The app includes several features to optimize output for LLMs:
 
 1. **Token Estimation**: Rough estimate of token count (1 token ≈ 4 characters)
 2. **Comment Removal**: Removes single-line (`//`, `#`) and multi-line (`/* */`) comments
+   - Note: Uses pattern matching; may occasionally affect strings containing comment-like patterns
 3. **Whitespace Optimization**: Removes trailing spaces and excessive blank lines
 4. **File Type Filtering**: Option to include only recognized code files
 5. **Size Limits**: Skip large files to stay within LLM context windows
+6. **Binary File Detection**: Automatically skips binary and non-text files
 
 ## Supported File Types
 
