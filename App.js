@@ -3,17 +3,19 @@ import {
   StyleSheet,
   Text,
   View,
-  TextInput,
-  TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Platform,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { StatusBar } from 'expo-status-bar';
+import InputSection from './components/InputSection';
+import OutputSection from './components/OutputSection';
+import Footer from './components/Footer';
+import SelectionComponent from './components/SelectionComponent';
 
 // Default ignore patterns
 const DEFAULT_IGNORE_PATTERNS = [
@@ -43,6 +45,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState('');
   const [dirStructure, setDirStructure] = useState('');
+  const [treeData, setTreeData] = useState(null);
+  const [localTreeData, setLocalTreeData] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [ignorePatterns, setIgnorePatterns] = useState(DEFAULT_IGNORE_PATTERNS.join(', '));
   
   // LLM Enhancement Options
@@ -54,6 +59,100 @@ export default function App() {
   const [includeOnlyCode, setIncludeOnlyCode] = useState(false);
   const [maxFileSize, setMaxFileSize] = useState('100');
   const [tokenCount, setTokenCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('github');
+  const [showSelection, setShowSelection] = useState(false);
+
+  const generateText = async () => {
+    if (!treeData || selectedFiles.length === 0) return;
+
+    setLoading(true);
+    setOutput('');
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json',
+      };
+      
+      if (githubToken.trim()) {
+        headers['Authorization'] = `Bearer ${githubToken.trim()}`;
+      }
+
+      await processRepoTree(treeData, selectedFiles, headers, controller.signal);
+
+      clearTimeout(timeoutId);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        Alert.alert('Error', 'Request timed out. The repository may be too large or the connection is slow.');
+      } else {
+        Alert.alert('Error', error.message || 'Failed to generate text');
+      }
+      setOutput('Error: ' + (error.message || 'Failed to generate text'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateLocalText = async () => {
+    if (!localTreeData || selectedFiles.length === 0) return;
+
+    setLoading(true);
+    setOutput('');
+
+    try {
+      let combinedText = `Local Files\n`;
+      combinedText += `Total files: ${selectedFiles.length}\n`;
+      combinedText += `Generated: ${new Date().toISOString()}\n`;
+      combinedText += `\n${'='.repeat(40)}\n`;
+      combinedText += `FILE CONTENTS:\n`;
+      combinedText += `${'='.repeat(40)}\n\n`;
+
+      const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024;
+
+      for (const file of selectedFiles) {
+        try {
+          // Skip files larger than max size
+          if (file.size > maxFileSizeBytes) {
+            combinedText += `\n${'─'.repeat(50)}\n`;
+            combinedText += `FILE: ${file.path} [SKIPPED - Size: ${Math.round(file.size / 1024)}KB exceeds limit]\n`;
+            combinedText += `${'─'.repeat(50)}\n\n`;
+            continue;
+          }
+
+          // Read file content
+          let content;
+          if (Platform.OS === 'web') {
+            const response = await fetch(file.url);
+            content = await response.text();
+          } else {
+            content = await FileSystem.readAsStringAsync(file.url, {
+              encoding: FileSystem.EncodingType.UTF8,
+            });
+          }
+          
+          const optimizedContent = optimizeContent(content, file.path);
+          
+          combinedText += `\n${'─'.repeat(50)}\n`;
+          combinedText += `FILE: ${file.path}\n`;
+          combinedText += `${'─'.repeat(50)}\n`;
+          combinedText += optimizedContent;
+          combinedText += `\n`;
+        } catch (error) {
+          console.log(`Error fetching ${file.path}:`, error);
+        }
+      }
+
+      setOutput(combinedText);
+      setTokenCount(estimateTokens(combinedText));
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to generate text');
+      setOutput('Error: ' + (error.message || 'Failed to generate text'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const shouldIgnore = (path, patterns) => {
     const patternList = patterns.split(',').map(p => p.trim());
@@ -75,8 +174,13 @@ export default function App() {
     setLoading(true);
     setOutput('');
     setDirStructure('');
+    setSelectedFiles([]);
+    setTreeData(null);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       // Parse GitHub URL to extract owner and repo
       const urlMatch = githubUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
       if (!urlMatch) {
@@ -95,77 +199,71 @@ export default function App() {
         headers['Authorization'] = `Bearer ${githubToken.trim()}`;
       }
 
+      // Fetch repository info to get default branch
+      const repoResponse = await fetch(
+        `https://api.github.com/repos/${owner}/${cleanRepo}`,
+        { headers, signal: controller.signal }
+      );
+
+      if (!repoResponse.ok) {
+        throw new Error('Repository not found or access denied. Check the URL and token.');
+      }
+
+      const repoData = await repoResponse.json();
+      const defaultBranch = repoData.default_branch;
+
+      // Fetch repository tree
       const treeResponse = await fetch(
-        `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/main?recursive=1`,
-        { headers }
+        `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/${defaultBranch}?recursive=1`,
+        { headers, signal: controller.signal }
       );
 
       if (!treeResponse.ok) {
-        // Try master branch if main doesn't exist
-        const masterResponse = await fetch(
-          `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/master?recursive=1`,
-          { headers }
-        );
-        
-        if (!masterResponse.ok) {
-          throw new Error('Failed to fetch repository. Check the URL and token.');
-        }
-        
-        const masterData = await masterResponse.json();
-        await processRepoTree(masterData, owner, cleanRepo, headers);
-      } else {
-        const treeData = await treeResponse.json();
-        await processRepoTree(treeData, owner, cleanRepo, headers);
+        throw new Error('Failed to fetch repository tree. The repository may be empty or access is restricted.');
       }
+
+      const treeData = await treeResponse.json();
+      setTreeData(treeData);
+      setDirStructure(buildDirStructure(treeData.tree, ignorePatterns));
+      setShowSelection(true);
+
+      clearTimeout(timeoutId);
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to fetch repository');
+      if (error.name === 'AbortError') {
+        Alert.alert('Error', 'Request timed out. The repository may be too large or the connection is slow.');
+      } else {
+        Alert.alert('Error', error.message || 'Failed to fetch repository');
+      }
       setOutput('Error: ' + (error.message || 'Failed to fetch repository'));
     } finally {
       setLoading(false);
     }
   };
 
-  const processRepoTree = async (treeData, owner, repo, headers) => {
-    let files = treeData.tree.filter(
-      item => item.type === 'blob' && !shouldIgnore(item.path, ignorePatterns)
-    );
-
-    // Filter to only code files if option is enabled
-    if (includeOnlyCode) {
-      files = files.filter(file => isCodeFile(file.path));
-    }
-
-    // Build directory structure
-    const structure = buildDirStructure(treeData.tree, ignorePatterns);
-    setDirStructure(structure);
-
-    let combinedText = `Repository: ${owner}/${repo}\n`;
-    combinedText += `Total files: ${files.length}\n`;
+  const processRepoTree = async (treeData, selectedFiles, headers, signal) => {
+    let combinedText = `Repository: ${treeData.url.split('/')[4]}/${treeData.url.split('/')[5]}\n`;
+    combinedText += `Total files: ${selectedFiles.length}\n`;
     combinedText += `Generated: ${new Date().toISOString()}\n`;
-    combinedText += `\n${'='.repeat(80)}\n`;
-    combinedText += `DIRECTORY STRUCTURE:\n`;
-    combinedText += `${'='.repeat(80)}\n`;
-    combinedText += structure;
-    combinedText += `\n${'='.repeat(80)}\n`;
+    combinedText += `\n${'='.repeat(50)}\n`;
     combinedText += `FILE CONTENTS:\n`;
-    combinedText += `${'='.repeat(80)}\n\n`;
+    combinedText += `${'='.repeat(50)}\n\n`;
 
-    const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024; // Convert KB to bytes, default 100KB
+    const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024;
 
     // Fetch file contents
-    for (const file of files) {
+    for (const file of selectedFiles) {
       try {
         // Skip files larger than max size
         if (file.size > maxFileSizeBytes) {
-          combinedText += `\n${'─'.repeat(80)}\n`;
+          combinedText += `\n${'─'.repeat(50)}\n`;
           combinedText += `FILE: ${file.path} [SKIPPED - Size: ${Math.round(file.size / 1024)}KB exceeds limit]\n`;
-          combinedText += `${'─'.repeat(80)}\n\n`;
+          combinedText += `${'─'.repeat(50)}\n\n`;
           continue;
         }
 
         const contentResponse = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`,
-          { headers }
+          `https://api.github.com/repos/${treeData.url.split('/')[4]}/${treeData.url.split('/')[5]}/contents/${file.path}`,
+          { headers, signal }
         );
         
         if (contentResponse.ok) {
@@ -174,21 +272,23 @@ export default function App() {
             const content = atob(contentData.content);
             const optimizedContent = optimizeContent(content, file.path);
             
-            combinedText += `\n${'─'.repeat(80)}\n`;
+            combinedText += `\n${'─'.repeat(50)}\n`;
             combinedText += `FILE: ${file.path}\n`;
-            combinedText += `Size: ${Math.round(file.size / 1024)}KB | Lines: ${optimizedContent.split('\n').length}\n`;
-            combinedText += `${'─'.repeat(80)}\n`;
+            combinedText += `${'─'.repeat(50)}\n`;
             combinedText += optimizedContent;
             combinedText += `\n`;
           } catch (decodeError) {
-            // Handle binary files or invalid base64
             combinedText += `\n${'─'.repeat(80)}\n`;
             combinedText += `FILE: ${file.path} [SKIPPED - Binary or non-text file]\n`;
             combinedText += `${'─'.repeat(80)}\n\n`;
           }
         }
       } catch (error) {
-        console.log(`Error fetching ${file.path}:`, error);
+        if (error.name === 'AbortError') {
+          break;
+        } else {
+          console.log(`Error fetching ${file.path}:`, error);
+        }
       }
     }
 
@@ -215,10 +315,10 @@ export default function App() {
       });
     });
 
-    return formatStructure(structure, 0);
+    return formatStructure(structure, 0, '');
   };
 
-  const formatStructure = (obj, level) => {
+  const formatStructure = (obj, level, prefix = '') => {
     let result = '';
     const entries = Object.entries(obj).sort((a, b) => {
       const aIsFile = a[1] === null;
@@ -228,12 +328,14 @@ export default function App() {
       return a[0].localeCompare(b[0]);
     });
 
-    entries.forEach(([key, value]) => {
-      const indent = '  '.repeat(level);
-      const prefix = value === null ? '📄 ' : '📁 ';
-      result += `${indent}${prefix}${key}\n`;
+    entries.forEach(([key, value], index) => {
+      const isLast = index === entries.length - 1;
+      const connector = isLast ? '└── ' : '├── ';
+      const nextPrefix = isLast ? '    ' : '│   ';
+      
+      result += `${prefix}${connector}${key}\n`;
       if (value !== null) {
-        result += formatStructure(value, level + 1);
+        result += formatStructure(value, level + 1, prefix + nextPrefix);
       }
     });
 
@@ -321,12 +423,171 @@ export default function App() {
     }
   };
 
-  const showDirStructure = () => {
+  const copyDirectoryStructure = async () => {
     if (!dirStructure) {
-      Alert.alert('No structure', 'Please fetch a repository first');
+      Alert.alert('Nothing to copy', 'Please fetch a repository first');
       return;
     }
-    Alert.alert('Directory Structure', dirStructure);
+
+    try {
+      await Clipboard.setStringAsync(dirStructure);
+      Alert.alert('Success', 'Directory structure copied to clipboard!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to copy directory structure to clipboard');
+    }
+  };
+
+  const downloadText = () => {
+    if (!output) return;
+
+    if (Platform.OS === 'web') {
+      const blob = new Blob([output], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'repo2txt_output.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      // For mobile, perhaps save to documents or something, but for now, just copy
+      copyToClipboard();
+    }
+  };
+
+  const pickLocalDirectory = async () => {
+    try {
+      setLoading(true);
+      setOutput('');
+      setDirStructure('');
+      setLocalTreeData(null);
+      setSelectedFiles([]);
+
+      if (Platform.OS === 'web') {
+        // For web, use input with webkitdirectory
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.webkitdirectory = true;
+        input.multiple = true;
+        
+        input.onchange = async (e) => {
+          const files = Array.from(e.target.files);
+          if (files.length === 0) {
+            setLoading(false);
+            return;
+          }
+
+          // Create tree data from directory files
+          const treeItems = files.map((file, index) => ({
+            path: file.webkitRelativePath || file.name,
+            type: 'blob',
+            size: file.size,
+            url: file.uri || URL.createObjectURL(file),
+            sha: `local-dir-${index}`,
+          }));
+
+          setLocalTreeData({ tree: treeItems });
+          setShowSelection(true);
+          setLoading(false);
+        };
+        
+        input.click();
+      } else {
+        // For mobile, use DocumentPicker with multiple selection
+        const result = await DocumentPicker.getDocumentAsync({
+          type: '*/*',
+          multiple: true,
+          copyToCacheDirectory: true,
+        });
+
+        if (result.canceled) {
+          setLoading(false);
+          return;
+        }
+
+        const files = result.assets || [result];
+        
+        // Create tree data from selected files
+        const treeItems = files.map((file, index) => ({
+          path: file.name,
+          type: 'blob',
+          size: file.size,
+          url: file.uri,
+          sha: `local-dir-${index}`,
+        }));
+
+        setLocalTreeData({ tree: treeItems });
+        setShowSelection(true);
+        setLoading(false);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to pick directory');
+      setLoading(false);
+    }
+  };
+
+  const processLocalDirectory = async (files) => {
+    // Build directory structure from files
+    const paths = files.map(file => ({ 
+      path: file.webkitRelativePath || file.name,
+      size: file.size,
+      name: file.name
+    }));
+    const structure = buildDirStructure(paths, ignorePatterns);
+    setDirStructure(structure);
+
+    let combinedText = `Local Directory\n`;
+    combinedText += `Total files: ${files.length}\n`;
+    combinedText += `Generated: ${new Date().toISOString()}\n`;
+    combinedText += `\nDIRECTORY STRUCTURE:\n${structure}\n\n`;
+    combinedText += `${'='.repeat(40)}\n`;
+    combinedText += `FILE CONTENTS:\n`;
+    combinedText += `${'='.repeat(40)}\n\n`;
+
+    let processedCount = 0;
+
+    for (const file of files) {
+      try {
+        // Check if file should be included
+        const filePath = file.webkitRelativePath || file.name;
+        if (shouldIgnore(filePath, ignorePatterns) || (includeOnlyCode && !isCodeFile(file.name))) {
+          continue;
+        }
+
+        // Check file size
+        const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024;
+        if (file.size && file.size > maxFileSizeBytes) {
+          continue;
+        }
+
+        // Read file content
+        let content;
+        if (Platform.OS === 'web') {
+          content = await file.text();
+        } else {
+          content = await FileSystem.readAsStringAsync(file.uri, {
+            encoding: FileSystem.EncodingType.UTF8,
+          });
+        }
+        const optimizedContent = optimizeContent(content, file.name);
+
+        combinedText += `\n${'─'.repeat(40)}\n`;
+        combinedText += `FILE: ${filePath}\n`;
+        combinedText += `${'─'.repeat(40)}\n`;
+        combinedText += optimizedContent;
+        combinedText += `\n`;
+        processedCount++;
+      } catch (error) {
+        console.log(`Error reading ${file.name}:`, error);
+        continue;
+      }
+    }
+
+    // Update total files count
+    combinedText = combinedText.replace(/Total files: \d+/, `Total files: ${processedCount}`);
+
+    setOutput(combinedText);
+    setTokenCount(estimateTokens(combinedText));
+    setLoading(false);
   };
 
   const pickLocalFiles = async () => {
@@ -334,6 +595,8 @@ export default function App() {
       setLoading(true);
       setOutput('');
       setDirStructure('');
+      setLocalTreeData(null);
+      setSelectedFiles([]);
 
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
@@ -346,66 +609,21 @@ export default function App() {
         return;
       }
 
-      let combinedText = `Local Files\n`;
-      combinedText += `Total files: ${result.assets?.length || 1}\n`;
-      combinedText += `Generated: ${new Date().toISOString()}\n`;
-      combinedText += `\n${'='.repeat(80)}\n`;
-      combinedText += `FILE CONTENTS:\n`;
-      combinedText += `${'='.repeat(80)}\n\n`;
-
       const files = result.assets || [result];
+      
+      // Create tree data from files
+      const treeItems = files.map((file, index) => ({
+        path: file.name,
+        type: 'blob',
+        size: file.size,
+        url: file.uri,
+        sha: `local-${index}`,
+      }));
 
-      for (const file of files) {
-        try {
-          // Check if file should be included
-          if (includeOnlyCode && !isCodeFile(file.name)) {
-            continue;
-          }
-
-          // Check file size
-          const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024; // Default 100KB
-          if (file.size && file.size > maxFileSizeBytes) {
-            combinedText += `\n${'─'.repeat(80)}\n`;
-            combinedText += `FILE: ${file.name} [SKIPPED - Size: ${Math.round(file.size / 1024)}KB exceeds limit]\n`;
-            combinedText += `${'─'.repeat(80)}\n\n`;
-            continue;
-          }
-
-          // Read file content
-          try {
-            const content = await FileSystem.readAsStringAsync(file.uri, {
-              encoding: FileSystem.EncodingType.UTF8,
-            });
-            const optimizedContent = optimizeContent(content, file.name);
-
-            combinedText += `\n${'─'.repeat(80)}\n`;
-            combinedText += `FILE: ${file.name}\n`;
-            if (file.size) {
-              combinedText += `Size: ${Math.round(file.size / 1024)}KB | `;
-            }
-            combinedText += `Lines: ${optimizedContent.split('\n').length}\n`;
-            combinedText += `${'─'.repeat(80)}\n`;
-            combinedText += optimizedContent;
-            combinedText += `\n`;
-          } catch (readError) {
-            // Handle binary files or encoding errors
-            combinedText += `\n${'─'.repeat(80)}\n`;
-            combinedText += `FILE: ${file.name} [ERROR - Could not read as text file]\n`;
-            combinedText += `${'─'.repeat(80)}\n\n`;
-          }
-        } catch (error) {
-          console.log(`Error reading ${file.name}:`, error);
-          combinedText += `\n${'─'.repeat(80)}\n`;
-          combinedText += `FILE: ${file.name} [ERROR - Could not read file]\n`;
-          combinedText += `${'─'.repeat(80)}\n\n`;
-        }
-      }
-
-      setOutput(combinedText);
-      setTokenCount(estimateTokens(combinedText));
+      setLocalTreeData({ tree: treeItems });
+      setShowSelection(true);
     } catch (error) {
       Alert.alert('Error', error.message || 'Failed to pick files');
-    } finally {
       setLoading(false);
     }
   };
@@ -450,26 +668,31 @@ export default function App() {
         return;
       }
 
+      const paths = files.map(file => ({ path: file.webkitRelativePath || file.name }));
+      const structure = buildDirStructure(paths, ignorePatterns);
+      setDirStructure(structure);
+
       let combinedText = `Local Files (Drag & Drop)\n`;
       combinedText += `Total files: ${files.length}\n`;
       combinedText += `Generated: ${new Date().toISOString()}\n`;
-      combinedText += `\n${'='.repeat(80)}\n`;
+      combinedText += `\nDIRECTORY STRUCTURE:\n${structure}\n\n`;
+      combinedText += `${'='.repeat(40)}\n`;
       combinedText += `FILE CONTENTS:\n`;
-      combinedText += `${'='.repeat(80)}\n\n`;
+      combinedText += `${'='.repeat(40)}\n\n`;
+
+      let processedCount = 0;
 
       for (const file of files) {
         try {
           // Check if file should be included
-          if (includeOnlyCode && !isCodeFile(file.name)) {
+          const filePath = file.webkitRelativePath || file.name;
+          if (shouldIgnore(filePath, ignorePatterns) || (includeOnlyCode && !isCodeFile(file.name))) {
             continue;
           }
 
           // Check file size
           const maxFileSizeBytes = (parseInt(maxFileSize) || 100) * 1024;
           if (file.size && file.size > maxFileSizeBytes) {
-            combinedText += `\n${'─'.repeat(80)}\n`;
-            combinedText += `FILE: ${file.name} [SKIPPED - Size: ${Math.round(file.size / 1024)}KB exceeds limit]\n`;
-            combinedText += `${'─'.repeat(80)}\n\n`;
             continue;
           }
 
@@ -477,22 +700,20 @@ export default function App() {
           const content = await file.text();
           const optimizedContent = optimizeContent(content, file.name);
 
-          combinedText += `\n${'─'.repeat(80)}\n`;
-          combinedText += `FILE: ${file.name}\n`;
-          if (file.size) {
-            combinedText += `Size: ${Math.round(file.size / 1024)}KB | `;
-          }
-          combinedText += `Lines: ${optimizedContent.split('\n').length}\n`;
-          combinedText += `${'─'.repeat(80)}\n`;
+          combinedText += `\n${'─'.repeat(40)}\n`;
+          combinedText += `FILE: ${filePath}\n`;
+          combinedText += `${'─'.repeat(40)}\n`;
           combinedText += optimizedContent;
           combinedText += `\n`;
+          processedCount++;
         } catch (error) {
           console.log(`Error reading ${file.name}:`, error);
-          combinedText += `\n${'─'.repeat(80)}\n`;
-          combinedText += `FILE: ${file.name} [ERROR - Could not read as text file]\n`;
-          combinedText += `${'─'.repeat(80)}\n\n`;
+          continue;
         }
       }
+
+      // Update total files count
+      combinedText = combinedText.replace(/Total files: \d+/, `Total files: ${processedCount}`);
 
       setOutput(combinedText);
       setTokenCount(estimateTokens(combinedText));
@@ -502,170 +723,72 @@ export default function App() {
       setLoading(false);
     }
   };
-
   return (
-    <View style={styles.container}>
+    <View 
+      style={[styles.container, isDragging && styles.draggingContainer]}
+    >
       <StatusBar style="auto" />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>repo2txt</Text>
-          <Text style={styles.subtitle}>Convert repositories & files to text for LLMs</Text>
-          <Text style={styles.subtitle}>GitHub • Local Files • Token Optimized</Text>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.sectionTitle}>📦 Source</Text>
-          <Text style={styles.label}>GitHub Repository URL</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="https://github.com/owner/repo"
-            value={githubUrl}
-            onChangeText={setGithubUrl}
-            autoCapitalize="none"
-            autoCorrect={false}
+        <InputSection
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          githubUrl={githubUrl}
+          setGithubUrl={setGithubUrl}
+          githubToken={githubToken}
+          setGithubToken={setGithubToken}
+          ignorePatterns={ignorePatterns}
+          setIgnorePatterns={setIgnorePatterns}
+          removeComments={removeComments}
+          setRemoveComments={setRemoveComments}
+          removeExtraWhitespace={removeExtraWhitespace}
+          setRemoveExtraWhitespace={setRemoveExtraWhitespace}
+          includeOnlyCode={includeOnlyCode}
+          setIncludeOnlyCode={setIncludeOnlyCode}
+          maxFileSize={maxFileSize}
+          setMaxFileSize={setMaxFileSize}
+          loading={loading}
+          fetchGitHubRepo={fetchGitHubRepo}
+          copyDirectoryStructure={copyDirectoryStructure}
+          pickLocalFiles={pickLocalFiles}
+          pickLocalDirectory={pickLocalDirectory}
+          copyToClipboard={copyToClipboard}
+          output={output}
+          dirStructure={dirStructure}
+          isDragging={isDragging}
+          handleDragEnter={handleDragEnter}
+          handleDragLeave={handleDragLeave}
+          handleDragOver={handleDragOver}
+          handleDrop={handleDrop}
+        />
+        {showSelection ? (
+          <SelectionComponent 
+            tree={(treeData || localTreeData)?.tree} 
+            selectedFiles={selectedFiles} 
+            setSelectedFiles={setSelectedFiles} 
+            onGenerate={treeData ? generateText : generateLocalText} 
+            loading={loading} 
           />
-
-          <Text style={styles.label}>GitHub Token (optional, for private repos)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="ghp_xxxxxxxxxxxx"
-            value={githubToken}
-            onChangeText={setGithubToken}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry={true}
-          />
-
-          <Text style={styles.label}>Ignore Patterns (comma-separated)</Text>
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="node_modules, .git, dist"
-            value={ignorePatterns}
-            onChangeText={setIgnorePatterns}
-            multiline
-            numberOfLines={2}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <Text style={styles.sectionTitle}>LLM Enhancement Options</Text>
-          
-          <View style={styles.checkboxRow}>
-            <TouchableOpacity 
-              style={styles.checkbox}
-              onPress={() => setRemoveComments(!removeComments)}
-            >
-              <View style={[styles.checkboxBox, removeComments && styles.checkboxChecked]}>
-                {removeComments && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxLabel}>Remove comments</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.checkboxRow}>
-            <TouchableOpacity 
-              style={styles.checkbox}
-              onPress={() => setRemoveExtraWhitespace(!removeExtraWhitespace)}
-            >
-              <View style={[styles.checkboxBox, removeExtraWhitespace && styles.checkboxChecked]}>
-                {removeExtraWhitespace && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxLabel}>Remove extra whitespace</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.checkboxRow}>
-            <TouchableOpacity 
-              style={styles.checkbox}
-              onPress={() => setIncludeOnlyCode(!includeOnlyCode)}
-            >
-              <View style={[styles.checkboxBox, includeOnlyCode && styles.checkboxChecked]}>
-                {includeOnlyCode && <Text style={styles.checkmark}>✓</Text>}
-              </View>
-              <Text style={styles.checkboxLabel}>Include only code files</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.label}>Max file size (KB)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="100"
-            value={maxFileSize}
-            onChangeText={setMaxFileSize}
-            keyboardType="numeric"
-          />
-
-          <View style={styles.buttonRow}>
-            <TouchableOpacity 
-              style={[styles.button, styles.primaryButton]} 
-              onPress={fetchGitHubRepo}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Fetch Repository</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.button, styles.secondaryButton]} 
-              onPress={showDirStructure}
-              disabled={loading || !dirStructure}
-            >
-              <Text style={styles.buttonTextSecondary}>Show Structure</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity 
-            style={[styles.button, styles.localFilesButton]} 
-            onPress={pickLocalFiles}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>📁 Pick Local Files</Text>
-          </TouchableOpacity>
-
-          {Platform.OS === 'web' && (
-            <View 
-              style={[styles.dropZone, isDragging && styles.dropZoneActive]}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <Text style={styles.dropZoneText}>
-                {isDragging ? '📥 Drop files here' : '🖱️ Or drag & drop files here'}
-              </Text>
-              {!isDragging && (
-                <Text style={styles.dropZoneSubtext}>
-                  Supports multiple files
-                </Text>
-              )}
-            </View>
-          )}
-
-          <TouchableOpacity 
-            style={[styles.button, styles.copyButton]} 
-            onPress={copyToClipboard}
-            disabled={loading || !output}
-          >
-            <Text style={styles.buttonText}>Copy to Clipboard</Text>
-          </TouchableOpacity>
-        </View>
-
+        ) : null}
         {output ? (
-          <View style={styles.outputSection}>
-            <View style={styles.statsRow}>
-              <Text style={styles.statItem}>Characters: {output.length.toLocaleString()}</Text>
-              <Text style={styles.statItem}>Tokens: ~{tokenCount.toLocaleString()}</Text>
-              <Text style={styles.statItem}>Lines: {output.split('\n').length.toLocaleString()}</Text>
+          <View>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.copyButton]} 
+                onPress={() => copyToClipboard()}
+              >
+                <Text style={styles.actionButtonText}>Copy to Clipboard</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.downloadButton]} 
+                onPress={() => downloadText()}
+              >
+                <Text style={styles.actionButtonText}>Download as Text File</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.label}>Output</Text>
-            <ScrollView style={styles.outputBox}>
-              <Text style={styles.outputText}>{output}</Text>
-            </ScrollView>
+            <OutputSection output={output} tokenCount={tokenCount} />
           </View>
         ) : null}
+        <Footer />
       </ScrollView>
     </View>
   );
@@ -675,202 +798,44 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    ...Platform.select({
+      web: {},
+      default: {},
+    }),
+  },
+  draggingContainer: {
+    backgroundColor: '#e0f0ff',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingTop: Platform.OS === 'web' ? 20 : 40,
+    padding: 5,
+    paddingTop: 10,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  inputSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 8,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  input: {
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 14,
-    color: '#333',
-  },
-  multilineInput: {
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  buttonRow: {
+  actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 10,
+    marginBottom: 10,
+    gap: 8,
   },
-  button: {
-    padding: 15,
+  actionButton: {
+    padding: 8,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 50,
-  },
-  primaryButton: {
-    backgroundColor: '#007AFF',
-    flex: 1,
-  },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#007AFF',
+    minHeight: 40,
     flex: 1,
   },
   copyButton: {
     backgroundColor: '#34C759',
-    marginTop: 10,
   },
-  localFilesButton: {
+  downloadButton: {
     backgroundColor: '#FF9500',
-    marginTop: 10,
   },
-  buttonText: {
+  actionButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonTextSecondary: {
-    color: '#007AFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  outputSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  outputBox: {
-    backgroundColor: '#f9f9f9',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    padding: 12,
-    maxHeight: 400,
-  },
-  outputText: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: '#333',
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  checkboxRow: {
-    marginBottom: 12,
-  },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkboxBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxChecked: {
-    backgroundColor: '#007AFF',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  checkboxLabel: {
     fontSize: 14,
-    color: '#333',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 15,
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  statItem: {
-    fontSize: 13,
     fontWeight: '600',
-    color: '#555',
-  },
-  dropZone: {
-    marginTop: 15,
-    padding: 30,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#007AFF',
-    borderRadius: 8,
-    backgroundColor: '#f0f8ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 100,
-  },
-  dropZoneActive: {
-    backgroundColor: '#e0f0ff',
-    borderColor: '#0051d5',
-    borderWidth: 3,
-  },
-  dropZoneText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  dropZoneSubtext: {
-    fontSize: 13,
-    color: '#666',
   },
 });
