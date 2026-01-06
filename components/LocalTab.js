@@ -1,87 +1,78 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import ProcessingOptions from './ProcessingOptions';
+import { useTheme } from '../hooks/useTheme';
 
 const LocalTab = ({
   loading,
   pickLocalFiles,
   pickLocalDirectory,
-  output,
   isDragging
 }) => {
+  const { colors, borderRadius, spacing } = useTheme();
+
   return (
     <View style={styles.container}>
       <View style={styles.buttonRow}>
         <TouchableOpacity
-          style={[styles.button, styles.localFilesButton]}
+          style={[styles.button, { backgroundColor: colors.surface, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border }]}
           onPress={() => pickLocalFiles()}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>📄 Files</Text>
+          <Text style={[styles.buttonText, { color: colors.text }]}>📄 Select Files</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.button, styles.localDirButton]}
+          style={[styles.button, { backgroundColor: colors.surface, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border }]}
           onPress={() => pickLocalDirectory()}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>📁 Directory</Text>
+          <Text style={[styles.buttonText, { color: colors.text }]}>📁 Select Folder</Text>
         </TouchableOpacity>
       </View>
-      <View style={[styles.dragDropArea, isDragging && styles.draggingDropArea]}>
-        <Text style={styles.dragDropText}>Or drag and drop files/folders here to process them</Text>
+
+      <View style={[
+        styles.dragDropArea,
+        {
+          backgroundColor: isDragging ? colors.surface : colors.surface,
+          borderColor: isDragging ? colors.primary : colors.border,
+          borderWidth: 2,
+          borderStyle: 'dashed',
+          borderRadius: borderRadius.lg,
+          marginTop: spacing.md
+        }
+      ]}>
+        <Text style={[styles.dragDropText, { color: colors.textSecondary }]}>
+          {isDragging ? 'Drop to upload' : 'Or drop files and folders here'}
+        </Text>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    // No specific styles, just a wrapper
-  },
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 12,
   },
   button: {
-    padding: 8,
-    borderRadius: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 40,
     flex: 1,
   },
-  localFilesButton: {
-    backgroundColor: '#FF9500',
-    marginTop: 8,
-  },
-  localDirButton: {
-    backgroundColor: '#5856D6',
-    marginTop: 8,
-  },
   buttonText: {
-    color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   dragDropArea: {
-    marginTop: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-    borderRadius: 8,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fafafa',
-  },
-  draggingDropArea: {
-    borderColor: '#007AFF',
-    backgroundColor: '#f0f8ff',
+    padding: 20,
   },
   dragDropText: {
-    color: '#666',
     fontSize: 14,
+    fontWeight: '500',
     textAlign: 'center',
   },
 });

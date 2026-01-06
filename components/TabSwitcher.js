@@ -1,22 +1,37 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 
 const TabSwitcher = ({ activeTab, setActiveTab }) => {
+  const { colors, borderRadius, spacing, shadows } = useTheme();
+
   return (
-    <View style={styles.tabContainer}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.xs }]}>
       <TouchableOpacity
-        style={[styles.tab, activeTab === 'github' && styles.activeTab]}
+        style={[
+          styles.tab,
+          activeTab === 'github' && { backgroundColor: colors.card, ...shadows.sm }
+        ]}
         onPress={() => setActiveTab('github')}
       >
-        <Text style={[styles.tabText, activeTab === 'github' && styles.activeTabText]}>
+        <Text style={[
+          styles.tabText,
+          { color: activeTab === 'github' ? colors.primary : colors.textSecondary }
+        ]}>
           📦 GitHub
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, activeTab === 'local' && styles.activeTab]}
+        style={[
+          styles.tab,
+          activeTab === 'local' && { backgroundColor: colors.card, ...shadows.sm }
+        ]}
         onPress={() => setActiveTab('local')}
       >
-        <Text style={[styles.tabText, activeTab === 'local' && styles.activeTabText]}>
+        <Text style={[
+          styles.tabText,
+          { color: activeTab === 'local' ? colors.primary : colors.textSecondary }
+        ]}>
           📁 Local Files
         </Text>
       </TouchableOpacity>
@@ -25,30 +40,20 @@ const TabSwitcher = ({ activeTab, setActiveTab }) => {
 };
 
 const styles = StyleSheet.create({
-  tabContainer: {
+  container: {
     flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 15,
+    marginBottom: 20,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
-  },
-  activeTab: {
-    backgroundColor: '#007AFF',
+    justifyContent: 'center',
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  activeTabText: {
-    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

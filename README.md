@@ -132,4 +132,4 @@ MIT License - feel free to use this project for any purpose.
 
 ## Author
 
-Created by yazz0dev
+Created by yazzdev

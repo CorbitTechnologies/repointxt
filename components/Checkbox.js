@@ -1,52 +1,57 @@
-import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 
 const Checkbox = ({ label, checked, onPress }) => {
+  const { colors, borderRadius, spacing } = useTheme();
+
   return (
-    <View style={styles.checkboxRow}>
+    <View style={styles.container}>
       <TouchableOpacity
-        style={styles.checkbox}
+        style={styles.touchable}
         onPress={onPress}
+        activeOpacity={0.7}
       >
-        <View style={[styles.checkboxBox, checked && styles.checkboxChecked]}>
+        <View style={[
+          styles.box,
+          {
+            borderColor: checked ? colors.primary : colors.border,
+            backgroundColor: checked ? colors.primary : colors.card,
+            borderRadius: borderRadius.sm,
+            marginRight: spacing.sm
+          }
+        ]}>
           {checked && <Text style={styles.checkmark}>✓</Text>}
         </View>
-        <Text style={styles.checkboxLabel}>{label}</Text>
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  checkboxRow: {
-    marginBottom: 6, // Reduced margin
+  container: {
+    marginBottom: 8,
   },
-  checkbox: {
+  touchable: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 4,
   },
-  checkboxBox: {
-    width: 16, // Reduced size
-    height: 16, // Reduced size
-    borderRadius: 3, // Slightly smaller border radius
+  box: {
+    width: 20,
+    height: 20,
     borderWidth: 2,
-    borderColor: '#007AFF',
-    marginRight: 6, // Reduced margin
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxChecked: {
-    backgroundColor: '#007AFF',
   },
   checkmark: {
     color: '#fff',
-    fontSize: 12, // Reduced font size
+    fontSize: 14,
     fontWeight: 'bold',
   },
-  checkboxLabel: {
-    fontSize: 10, // Reduced font size
-    color: '#333',
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

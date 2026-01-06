@@ -1,6 +1,12 @@
-import React from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 import Checkbox from './Checkbox';
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const ProcessingOptions = ({
   removeComments,
@@ -13,133 +19,213 @@ const ProcessingOptions = ({
   setMaxFileSize,
   ignorePatterns,
   setIgnorePatterns,
+  tokenOptimizationLevel,
+  setTokenOptimizationLevel,
 }) => {
+  const { colors, borderRadius, spacing } = useTheme();
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  const toggleCollapse = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>LLM Enhancement Options</Text>
-
-      <View style={styles.optionsRow}>
-        <View style={styles.checkboxColumn}>
-          <Checkbox
-            label="Remove comments"
-            checked={removeComments}
-            onPress={() => setRemoveComments(!removeComments)}
-          />
-          <Checkbox
-            label="Remove extra whitespace"
-            checked={removeExtraWhitespace}
-            onPress={() => setRemoveExtraWhitespace(!removeExtraWhitespace)}
-          />
+      <TouchableOpacity
+        style={styles.header}
+        onPress={toggleCollapse}
+        activeOpacity={0.7}
+      >
+        <View style={styles.headerLeft}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            ⚙️ Optimization & Filters
+          </Text>
         </View>
-        <View style={styles.checkboxColumn}>
-          <Checkbox
-            label="Include only code files"
-            checked={includeOnlyCode}
-            onPress={() => setIncludeOnlyCode(!includeOnlyCode)}
-          />
-          <View style={styles.fileSizeContainer}>
-            <Text style={styles.fileSizeLabel}>Max file size:</Text>
+        <Text style={[styles.toggleIcon, { color: colors.primary }]}>
+          {isCollapsed ? '▼' : '▲'}
+        </Text>
+      </TouchableOpacity>
+
+      {!isCollapsed && (
+        <View style={styles.content}>
+          <View style={{ marginBottom: spacing.md }}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Token Density</Text>
+            <View style={[styles.densityRow, { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: 4 }]}>
+              {[
+                { label: 'Standard', value: 0 },
+                { label: 'Compact', value: 1 },
+                { label: 'Minified', value: 2 }
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.densityOption,
+                    tokenOptimizationLevel === opt.value && { backgroundColor: colors.primary, borderRadius: borderRadius.sm - 2 }
+                  ]}
+                  onPress={() => setTokenOptimizationLevel(opt.value)}
+                >
+                  <Text style={[
+                    styles.densityText,
+                    { color: tokenOptimizationLevel === opt.value ? '#fff' : colors.textSecondary }
+                  ]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
+              {tokenOptimizationLevel === 0 ? "Full headers, easy to read." :
+                tokenOptimizationLevel === 1 ? "Reduced headers, balanced." :
+                  "Maximum density, minimal overhead (f:[path])."}
+            </Text>
+          </View>
+
+          <View style={styles.optionsGrid}>
+            <View style={styles.checkboxGroup}>
+              <Checkbox
+                label="Clean Comments"
+                checked={removeComments}
+                onPress={() => setRemoveComments(!removeComments)}
+              />
+              <Checkbox
+                label="Trim Whitespace"
+                checked={removeExtraWhitespace}
+                onPress={() => setRemoveExtraWhitespace(!removeExtraWhitespace)}
+              />
+            </View>
+
+            <View style={styles.checkboxGroup}>
+              <Checkbox
+                label="Text Files Only"
+                checked={includeOnlyCode}
+                onPress={() => setIncludeOnlyCode(!includeOnlyCode)}
+              />
+              <View style={[styles.fileSizeRow, { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.xs }]}>
+                <Text style={[styles.smLabel, { color: colors.textSecondary }]}>Limit:</Text>
+                <TextInput
+                  style={[styles.smallInput, { color: colors.text, borderBottomColor: colors.primary }]}
+                  value={maxFileSize}
+                  onChangeText={setMaxFileSize}
+                  keyboardType="numeric"
+                />
+                <Text style={[styles.smLabel, { color: colors.textSecondary }]}>KB</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ marginTop: spacing.md }}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Ignore Patterns</Text>
             <TextInput
-              style={styles.fileSizeInput}
-              placeholder="100"
-              value={maxFileSize}
-              onChangeText={setMaxFileSize}
-              keyboardType="numeric"
+              style={[styles.input, {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                color: colors.text,
+                borderRadius: borderRadius.md,
+                padding: spacing.sm,
+                minHeight: 60
+              }]}
+              placeholder="node_modules, .git, dist..."
+              placeholderTextColor={colors.textPlaceholder}
+              value={ignorePatterns}
+              onChangeText={setIgnorePatterns}
+              multiline
+              autoCapitalize="none"
             />
-            <Text style={styles.fileSizeUnit}>KB</Text>
           </View>
         </View>
-      </View>
-
-      <Text style={styles.label}>Ignore Patterns (comma-separated)</Text>
-      <TextInput
-        style={[styles.input, styles.multilineInput]}
-        placeholder="node_modules, .git, dist"
-        value={ignorePatterns}
-        onChangeText={setIgnorePatterns}
-        multiline
-        numberOfLines={2}
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 10,
+    width: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    ...Platform.select({
+      web: { cursor: 'pointer' }
+    })
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
-  optionsRow: {
+  toggleIcon: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  content: {
+    marginTop: 16,
+  },
+  optionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 24,
+    flexWrap: 'wrap',
   },
-  checkboxColumn: {
+  checkboxGroup: {
     flex: 1,
-    marginRight: 10,
+    minWidth: 140,
+    gap: 8,
   },
-  fileSizeContainer: {
+  fileSizeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingVertical: 6,
+    gap: 6,
     paddingHorizontal: 8,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
   },
-  fileSizeLabel: {
+  smLabel: {
     fontSize: 11,
-    color: '#666',
-    marginRight: 6,
+    fontWeight: '700',
   },
-  fileSizeInput: {
-    flex: 1,
-    fontSize: 11,
-    color: '#333',
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    backgroundColor: '#fff',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  smallInput: {
+    fontSize: 12,
+    fontWeight: '700',
+    width: 35,
     textAlign: 'center',
-    minWidth: 40,
-  },
-  fileSizeUnit: {
-    fontSize: 10,
-    color: '#666',
-    marginLeft: 4,
+    borderBottomWidth: 1,
+    padding: 0,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 6,
-    marginTop: 10,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f9f9f9',
+    fontSize: 14,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    padding: 8,
-    fontSize: 12,
-    color: '#333',
-  },
-  multilineInput: {
-    minHeight: 50,
     textAlignVertical: 'top',
   },
+  densityRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  densityOption: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  densityText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  hintText: {
+    fontSize: 11,
+    marginTop: 6,
+    fontStyle: 'italic',
+  }
 });
 
 export default ProcessingOptions;

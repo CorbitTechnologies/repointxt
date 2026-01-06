@@ -1,110 +1,114 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Platform } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { StyleSheet, Text, View, Platform } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 import TabSwitcher from './TabSwitcher';
 import ProcessingOptions from './ProcessingOptions';
 import GitHubTab from './GitHubTab';
 import LocalTab from './LocalTab';
 
-const InputSection = ({
-  activeTab,
-  setActiveTab,
-  githubUrl,
-  setGithubUrl,
-  githubToken,
-  setGithubToken,
-  ignorePatterns,
-  setIgnorePatterns,
-  removeComments,
-  setRemoveComments,
-  removeExtraWhitespace,
-  setRemoveExtraWhitespace,
-  includeOnlyCode,
-  setIncludeOnlyCode,
-  maxFileSize,
-  setMaxFileSize,
-  loading,
-  fetchGitHubRepo,
-  copyDirectoryStructure,
-  pickLocalFiles,
-  pickLocalDirectory,
-  copyToClipboard,
-  output,
-  dirStructure,
-  isDragging,
-  handleDragEnter,
-  handleDragLeave,
-  handleDragOver,
-  handleDrop,
-}) => {
+const InputSection = (props) => {
+  const { activeTab, colors, borderRadius, spacing, shadows } = { ...props, ...useTheme() };
+  const containerRef = useRef(null);
+
+  // Attach native drag/drop event listeners for web platform
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !containerRef.current) return;
+
+    const element = containerRef.current;
+
+    const handleDragEnter = (e) => {
+      if (activeTab === 'local' && props.handleDragEnter) {
+        props.handleDragEnter(e);
+      }
+    };
+
+    const handleDragOver = (e) => {
+      if (activeTab === 'local' && props.handleDragOver) {
+        props.handleDragOver(e);
+      }
+    };
+
+    const handleDragLeave = (e) => {
+      if (activeTab === 'local' && props.handleDragLeave) {
+        props.handleDragLeave(e);
+      }
+    };
+
+    const handleDrop = (e) => {
+      if (activeTab === 'local' && props.handleDrop) {
+        props.handleDrop(e);
+      }
+    };
+
+    element.addEventListener('dragenter', handleDragEnter);
+    element.addEventListener('dragover', handleDragOver);
+    element.addEventListener('dragleave', handleDragLeave);
+    element.addEventListener('drop', handleDrop);
+
+    return () => {
+      element.removeEventListener('dragenter', handleDragEnter);
+      element.removeEventListener('dragover', handleDragOver);
+      element.removeEventListener('dragleave', handleDragLeave);
+      element.removeEventListener('drop', handleDrop);
+    };
+  }, [activeTab, props.handleDragEnter, props.handleDragOver, props.handleDragLeave, props.handleDrop]);
+
   return (
-    <View 
-      style={styles.inputSection}
-      onDragEnter={activeTab === 'local' ? handleDragEnter : undefined}
-      onDragOver={activeTab === 'local' ? handleDragOver : undefined}
-      onDragLeave={activeTab === 'local' ? handleDragLeave : undefined}
-      onDrop={activeTab === 'local' ? handleDrop : undefined}
+    <View
+      ref={containerRef}
+      style={[
+        styles.container,
+        {
+          backgroundColor: props.isDragging ? colors.surface : colors.card,
+          borderRadius: borderRadius.xl,
+          padding: spacing.lg,
+          borderColor: props.isDragging ? colors.primary : colors.border,
+          ...shadows.md
+        }
+      ]}
     >
+      <TabSwitcher activeTab={activeTab} setActiveTab={props.setActiveTab} />
+
+      <View style={styles.tabContent}>
+        {activeTab === 'github' ? (
+          <GitHubTab {...props} />
+        ) : (
+          <LocalTab {...props} />
+        )}
+      </View>
+
+      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
       <ProcessingOptions
-        removeComments={removeComments}
-        setRemoveComments={setRemoveComments}
-        removeExtraWhitespace={removeExtraWhitespace}
-        setRemoveExtraWhitespace={setRemoveExtraWhitespace}
-        includeOnlyCode={includeOnlyCode}
-        setIncludeOnlyCode={setIncludeOnlyCode}
-        maxFileSize={maxFileSize}
-        setMaxFileSize={setMaxFileSize}
-        ignorePatterns={ignorePatterns}
-        setIgnorePatterns={setIgnorePatterns}
+        removeComments={props.removeComments}
+        setRemoveComments={props.setRemoveComments}
+        removeExtraWhitespace={props.removeExtraWhitespace}
+        setRemoveExtraWhitespace={props.setRemoveExtraWhitespace}
+        includeOnlyCode={props.includeOnlyCode}
+        setIncludeOnlyCode={props.setIncludeOnlyCode}
+        maxFileSize={props.maxFileSize}
+        setMaxFileSize={props.setMaxFileSize}
+        ignorePatterns={props.ignorePatterns}
+        setIgnorePatterns={props.setIgnorePatterns}
+        tokenOptimizationLevel={props.tokenOptimizationLevel}
+        setTokenOptimizationLevel={props.setTokenOptimizationLevel}
       />
-      <TabSwitcher activeTab={activeTab} setActiveTab={setActiveTab} />
-      {activeTab === 'github' ? (
-        <GitHubTab
-          githubUrl={githubUrl}
-          setGithubUrl={setGithubUrl}
-          githubToken={githubToken}
-          setGithubToken={setGithubToken}
-          ignorePatterns={ignorePatterns}
-          setIgnorePatterns={setIgnorePatterns}
-          loading={loading}
-          fetchGitHubRepo={fetchGitHubRepo}
-          copyDirectoryStructure={copyDirectoryStructure}
-          dirStructure={dirStructure}
-        />
-      ) : (
-        <LocalTab
-          loading={loading}
-          pickLocalFiles={pickLocalFiles}
-          pickLocalDirectory={pickLocalDirectory}
-          output={output}
-          isDragging={isDragging}
-          handleDragEnter={handleDragEnter}
-          handleDragLeave={handleDragLeave}
-          handleDragOver={handleDragOver}
-          handleDrop={handleDrop}
-        />
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  inputSection: {
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 10,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-      },
-    }),
+  container: {
+    width: '100%',
+    borderWidth: 1,
+  },
+  tabContent: {
+    marginBottom: 24,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 24,
+    width: '100%',
   },
 });
 

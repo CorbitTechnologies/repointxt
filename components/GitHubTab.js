@@ -1,20 +1,21 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Platform } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 import SourceInputs from './SourceInputs';
-import ProcessingOptions from './ProcessingOptions';
 
 const GitHubTab = ({
   githubUrl,
   setGithubUrl,
   githubToken,
   setGithubToken,
-  ignorePatterns,
-  setIgnorePatterns,
   loading,
   fetchGitHubRepo,
   copyDirectoryStructure,
   dirStructure,
+  urlHistory,
 }) => {
+  const { colors, borderRadius, spacing } = useTheme();
+
   return (
     <View>
       <SourceInputs
@@ -22,26 +23,31 @@ const GitHubTab = ({
         setGithubUrl={setGithubUrl}
         githubToken={githubToken}
         setGithubToken={setGithubToken}
+        urlHistory={urlHistory}
       />
-      <View style={styles.buttonRow}>
+      <View style={[styles.buttonRow, { marginTop: spacing.lg }]}>
         <TouchableOpacity
-          style={[styles.button, styles.primaryButton]}
+          style={[styles.button, styles.primaryButton, { backgroundColor: colors.primary, borderRadius: borderRadius.md }]}
           onPress={() => fetchGitHubRepo()}
           disabled={loading}
+          activeOpacity={0.8}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Fetch Repository</Text>
+            <Text style={styles.buttonText}>Scan Repository</Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={() => copyDirectoryStructure()}
-          disabled={loading || !dirStructure}
-        >
-          <Text style={styles.buttonTextSecondary}>Copy Directory Structure</Text>
-        </TouchableOpacity>
+
+        {dirStructure ? (
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.surface, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border }]}
+            onPress={() => copyDirectoryStructure()}
+            disabled={loading}
+          >
+            <Text style={[styles.buttonTextSecondary, { color: colors.text }]}>Copy Tree</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -50,35 +56,28 @@ const GitHubTab = ({
 const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 15,
-    gap: 8,
+    gap: 12,
   },
   button: {
-    padding: 8,
-    borderRadius: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 40,
+    flex: 1,
+    ...Platform.select({
+      web: { cursor: 'pointer' }
+    })
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
-    flex: 1,
-  },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    flex: 1,
+    flex: 2,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   buttonTextSecondary: {
-    color: '#007AFF',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
 });
