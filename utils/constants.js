@@ -59,4 +59,5 @@ export const DEFAULT_IGNORE_PATTERNS = [
     '.babelrc',
     'tsconfig.json',
     'jsconfig.json',
+    '.env*',
 ];

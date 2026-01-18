@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import Checkbox from './Checkbox';
+import BubbleInput from './BubbleInput';
 
 // Enable LayoutAnimation for Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -21,8 +22,11 @@ const ProcessingOptions = ({
   setIgnorePatterns,
   tokenOptimizationLevel,
   setTokenOptimizationLevel,
+  respectGitignore,
+  setRespectGitignore,
+  isMobile
 }) => {
-  const { colors, borderRadius, spacing } = useTheme();
+  const { colors, borderRadius, spacing, shadows } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   const toggleCollapse = () => {
@@ -39,7 +43,7 @@ const ProcessingOptions = ({
       >
         <View style={styles.headerLeft}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            ⚙️ Optimization & Filters
+            ⚙️ Configuration & Filters
           </Text>
         </View>
         <Text style={[styles.toggleIcon, { color: colors.primary }]}>
@@ -50,24 +54,32 @@ const ProcessingOptions = ({
       {!isCollapsed && (
         <View style={styles.content}>
           <View style={{ marginBottom: spacing.md }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Token Density</Text>
-            <View style={[styles.densityRow, { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: 4 }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Token Density Level</Text>
+            <View style={[styles.densityRow, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: 2, flexDirection: isMobile ? 'column' : 'row' }]}>
               {[
                 { label: 'Standard', value: 0 },
                 { label: 'Compact', value: 1 },
-                { label: 'Minified', value: 2 }
+                { label: 'Minimal', value: 2 }
               ].map((opt) => (
                 <TouchableOpacity
                   key={opt.value}
                   style={[
                     styles.densityOption,
-                    tokenOptimizationLevel === opt.value && { backgroundColor: colors.primary, borderRadius: borderRadius.sm - 2 }
+                    tokenOptimizationLevel === opt.value && {
+                      backgroundColor: colors.card,
+                      borderRadius: borderRadius.md,
+                      ...shadows.sm
+                    }
                   ]}
                   onPress={() => setTokenOptimizationLevel(opt.value)}
+                  activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.densityText,
-                    { color: tokenOptimizationLevel === opt.value ? '#fff' : colors.textSecondary }
+                    {
+                      color: tokenOptimizationLevel === opt.value ? colors.primary : colors.textSecondary,
+                      fontWeight: tokenOptimizationLevel === opt.value ? '800' : '600'
+                    }
                   ]}>
                     {opt.label}
                   </Text>
@@ -75,21 +87,21 @@ const ProcessingOptions = ({
               ))}
             </View>
             <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-              {tokenOptimizationLevel === 0 ? "Full headers, easy to read." :
-                tokenOptimizationLevel === 1 ? "Reduced headers, balanced." :
-                  "Maximum density, minimal overhead (f:[path])."}
+              {tokenOptimizationLevel === 0 ? "Full readable headers (path + delimiter)" :
+                tokenOptimizationLevel === 1 ? "Compact headers (balanced size/readability)" :
+                  "Ultra-compact (f:[path]), maximum token efficiency."}
             </Text>
           </View>
 
           <View style={styles.optionsGrid}>
             <View style={styles.checkboxGroup}>
               <Checkbox
-                label="Clean Comments"
+                label="Strip Comments"
                 checked={removeComments}
                 onPress={() => setRemoveComments(!removeComments)}
               />
               <Checkbox
-                label="Trim Whitespace"
+                label="Minify Whitespace"
                 checked={removeExtraWhitespace}
                 onPress={() => setRemoveExtraWhitespace(!removeExtraWhitespace)}
               />
@@ -97,41 +109,47 @@ const ProcessingOptions = ({
 
             <View style={styles.checkboxGroup}>
               <Checkbox
-                label="Text Files Only"
+                label="Respect .gitignore"
+                checked={respectGitignore}
+                onPress={() => setRespectGitignore(!respectGitignore)}
+              />
+              <Checkbox
+                label="Code Files Only"
                 checked={includeOnlyCode}
                 onPress={() => setIncludeOnlyCode(!includeOnlyCode)}
               />
-              <View style={[styles.fileSizeRow, { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.xs }]}>
-                <Text style={[styles.smLabel, { color: colors.textSecondary }]}>Limit:</Text>
-                <TextInput
-                  style={[styles.smallInput, { color: colors.text, borderBottomColor: colors.primary }]}
-                  value={maxFileSize}
-                  onChangeText={setMaxFileSize}
-                  keyboardType="numeric"
-                />
-                <Text style={[styles.smLabel, { color: colors.textSecondary }]}>KB</Text>
-              </View>
             </View>
           </View>
 
-          <View style={{ marginTop: spacing.md }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Ignore Patterns</Text>
-            <TextInput
-              style={[styles.input, {
+          <View style={[styles.divider, { backgroundColor: colors.border, opacity: 0.5 }]} />
+
+          <View style={[styles.footerInputs, { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start' }]}>
+            <View style={{ flex: 1, marginBottom: isMobile ? 20 : 0 }}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Ignore Patterns</Text>
+              <BubbleInput
+                patterns={ignorePatterns}
+                setPatterns={setIgnorePatterns}
+                placeholder="node_modules, .git..."
+              />
+            </View>
+            <View style={{ width: isMobile ? '100%' : 130 }}>
+              <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 6 }]}>Max Size</Text>
+              <View style={[styles.fileSizeRow, {
                 backgroundColor: colors.surface,
-                borderColor: colors.border,
-                color: colors.text,
                 borderRadius: borderRadius.md,
-                padding: spacing.sm,
-                minHeight: 60
-              }]}
-              placeholder="node_modules, .git, dist..."
-              placeholderTextColor={colors.textPlaceholder}
-              value={ignorePatterns}
-              onChangeText={setIgnorePatterns}
-              multiline
-              autoCapitalize="none"
-            />
+                paddingHorizontal: spacing.sm,
+                height: 38
+              }]}>
+                <TextInput
+                  style={[styles.smallInput, { color: colors.text }]}
+                  value={maxFileSize.toString()}
+                  onChangeText={setMaxFileSize}
+                  keyboardType="numeric"
+                  placeholder="100"
+                />
+                <Text style={[styles.smLabel, { color: colors.textPlaceholder }]}>KB</Text>
+              </View>
+            </View>
           </View>
         </View>
       )}
@@ -147,7 +165,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 12,
     ...Platform.select({
       web: { cursor: 'pointer' }
     })
@@ -157,55 +175,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   toggleIcon: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '900',
   },
   content: {
-    marginTop: 16,
+    marginTop: 8,
+    paddingBottom: 8,
   },
   optionsGrid: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 16,
     flexWrap: 'wrap',
+    marginBottom: 12,
   },
   checkboxGroup: {
     flex: 1,
-    minWidth: 140,
-    gap: 8,
+    minWidth: 160,
+    gap: 12,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 12,
+  },
+  footerInputs: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
   },
   fileSizeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
+    justifyContent: 'center',
+    gap: 4,
   },
   smLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   smallInput: {
-    fontSize: 12,
-    fontWeight: '700',
-    width: 35,
-    textAlign: 'center',
-    borderBottomWidth: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    width: 45,
+    textAlign: 'right',
     padding: 0,
+    ...Platform.select({
+      web: { outline: 'none' }
+    })
   },
   label: {
     fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  input: {
-    fontSize: 14,
-    borderWidth: 1,
-    textAlignVertical: 'top',
+    fontWeight: '800',
+    marginBottom: 10,
+    letterSpacing: 0.3,
   },
   densityRow: {
     flexDirection: 'row',
@@ -213,18 +240,18 @@ const styles = StyleSheet.create({
   },
   densityOption: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   densityText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
   },
   hintText: {
-    fontSize: 11,
-    marginTop: 6,
-    fontStyle: 'italic',
+    fontSize: 12,
+    marginTop: 10,
+    opacity: 0.8,
+    lineHeight: 18,
   }
 });
 

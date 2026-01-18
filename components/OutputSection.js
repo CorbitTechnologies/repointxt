@@ -2,7 +2,7 @@ import React, { useMemo, memo } from 'react';
 import { StyleSheet, Text, View, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 
-const OutputSection = ({ output, tokenCount, onCopy, onDownload }) => {
+const OutputSection = ({ output, tokenCount, onCopy, onDownload, isMobile }) => {
   const { colors, borderRadius, spacing, shadows } = useTheme();
 
   // Memoize expensive line count calculation
@@ -18,42 +18,45 @@ const OutputSection = ({ output, tokenCount, onCopy, onDownload }) => {
   if (!output) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card, borderRadius: borderRadius.lg, padding: spacing.md, ...shadows.md }]}>
+    <View style={[styles.container, { backgroundColor: colors.card, borderRadius: isMobile ? borderRadius.lg : borderRadius.xl, padding: isMobile ? spacing.sm : spacing.md, ...shadows.lg }]}>
       <View style={styles.header}>
-        <View style={styles.leftSection}>
-          <Text style={[styles.title, { color: colors.text }]}>Results</Text>
-          <View style={styles.statsRow}>
-            <View style={[styles.inlineStat, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.statValue, { color: colors.text }]}>{tokenCount.toLocaleString()}</Text><Text style={[styles.statLabel, { color: colors.textSecondary }]}>tokens</Text>
-            </View>
-            <View style={[styles.inlineStat, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.statValue, { color: colors.text }]}>{output.length.toLocaleString()}</Text><Text style={[styles.statLabel, { color: colors.textSecondary }]}>chars</Text>
-            </View>
-            <View style={[styles.inlineStat, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.statValue, { color: colors.text }]}>{lineCount.toLocaleString()}</Text><Text style={[styles.statLabel, { color: colors.textSecondary }]}>lines</Text>
+        <View style={styles.topRow}>
+          <View style={{ width: isMobile ? '100%' : 'auto' }}>
+            <Text style={[styles.title, { color: colors.text, fontSize: isMobile ? 18 : 20 }]}>Bundle Output</Text>
+            <View style={[styles.statsRow, { flexWrap: isMobile ? 'wrap' : 'nowrap' }]}>
+              <View style={[styles.inlineStat, { backgroundColor: colors.surface }]}>
+                <Text style={[styles.statValue, { color: colors.primary }]}>{tokenCount.toLocaleString()}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>tokens</Text>
+              </View>
+              <View style={[styles.inlineStat, { backgroundColor: colors.surface }]}>
+                <Text style={[styles.statValue, { color: colors.secondary }]}>{output.length.toLocaleString()}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>chars</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: colors.success, borderRadius: borderRadius.sm }]}
-            onPress={onCopy}
-          >
-            <Text style={styles.headerButtonText}>📋 Copy</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.headerButton, styles.downloadButton, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: borderRadius.sm }]}
-            onPress={onDownload}
-          >
-            <Text style={[styles.headerButtonTextSecondary, { color: colors.text }]}>⬇️ Download</Text>
-          </TouchableOpacity>
+          <View style={[styles.headerActions, { width: isMobile ? '100%' : 'auto', flexDirection: isMobile ? 'column' : 'row' }]}>
+            <TouchableOpacity
+              style={[styles.primaryAction, { backgroundColor: colors.primary, borderRadius: borderRadius.md, ...shadows.sm }]}
+              onPress={onCopy}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.actionTextMain}>📋 Copy All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.secondaryAction, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: borderRadius.md }]}
+              onPress={onDownload}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.actionTextSecondary, { color: colors.text }]}>⬇️ Download</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
-      <View style={[styles.outputWrapper, { backgroundColor: colors.surface, borderRadius: borderRadius.md, borderColor: colors.border }]}>
+      <View style={[styles.outputWrapper, { backgroundColor: colors.darkBg || '#000', borderRadius: borderRadius.lg, borderColor: colors.border }]}>
         <ScrollView style={styles.outputBox} showsVerticalScrollIndicator={true}>
-          <Text style={[styles.outputText, { color: colors.text, opacity: 0.9 }]}>
+          <Text style={[styles.outputText, { color: '#E2E8F0', fontSize: isMobile ? 12 : 13 }]}>
             {output}
           </Text>
         </ScrollView>
@@ -64,83 +67,90 @@ const OutputSection = ({ output, tokenCount, onCopy, onDownload }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
     width: '100%',
   },
   header: {
+    marginBottom: 16,
+  },
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 20,
   },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 16,
+  title: {
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    marginBottom: 8,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   inlineStat: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.8,
   },
   headerActions: {
     flexDirection: 'row',
     gap: 8,
   },
-  headerButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  primaryAction: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  downloadButton: {
-    borderWidth: 1,
+  secondaryAction: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerButtonText: {
+  actionTextMain: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '600',
-  },
-  headerButtonTextSecondary: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
     fontWeight: '800',
-    letterSpacing: -0.5,
   },
-  statValue: {
+  actionTextSecondary: {
     fontSize: 13,
     fontWeight: '700',
   },
-  statLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    opacity: 0.8,
-    textTransform: 'lowercase',
-  },
   outputWrapper: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     overflow: 'hidden',
   },
   outputBox: {
-    maxHeight: 500,
-    padding: 16,
+    maxHeight: 600,
+    padding: 12,
   },
   outputText: {
     fontSize: 13,
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', web: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }),
-    lineHeight: 20,
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      web: 'JetBrains Mono, Fira Code, ui-monospace, monospace'
+    }),
+    lineHeight: 22,
   },
 });
 

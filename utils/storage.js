@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 const STORAGE_KEYS = {
     GITHUB_TOKEN: 'repo2txt_github_token',
     URL_HISTORY: 'repo2txt_url_history',
+    APP_SETTINGS: 'repo2txt_app_settings',
 };
 
 // Max number of URLs to keep in history
@@ -14,7 +15,11 @@ const isWeb = Platform.OS === 'web';
 // Simple obfuscation for token (not encryption, but better than plain text)
 const obfuscate = (text) => {
     if (!text) return '';
-    return btoa(encodeURIComponent(text));
+    try {
+        return btoa(encodeURIComponent(text));
+    } catch {
+        return '';
+    }
 };
 
 const deobfuscate = (text) => {
@@ -28,7 +33,7 @@ const deobfuscate = (text) => {
 
 // Save GitHub token
 export const saveGitHubToken = (token) => {
-    if (!isWeb || !token) return;
+    if (!isWeb) return;
     try {
         const obfuscated = obfuscate(token);
         localStorage.setItem(STORAGE_KEYS.GITHUB_TOKEN, obfuscated);
@@ -99,5 +104,27 @@ export const clearUrlHistory = () => {
         localStorage.removeItem(STORAGE_KEYS.URL_HISTORY);
     } catch (error) {
         console.error('Failed to clear URL history:', error);
+    }
+};
+
+// Save general app settings
+export const saveAppSettings = (settings) => {
+    if (!isWeb || !settings) return;
+    try {
+        localStorage.setItem(STORAGE_KEYS.APP_SETTINGS, JSON.stringify(settings));
+    } catch (error) {
+        console.error('Failed to save app settings:', error);
+    }
+};
+
+// Load general app settings
+export const loadAppSettings = () => {
+    if (!isWeb) return null;
+    try {
+        const settings = localStorage.getItem(STORAGE_KEYS.APP_SETTINGS);
+        return settings ? JSON.parse(settings) : null;
+    } catch (error) {
+        console.error('Failed to load app settings:', error);
+        return null;
     }
 };

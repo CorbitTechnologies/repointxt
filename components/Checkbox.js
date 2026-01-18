@@ -9,20 +9,20 @@ const Checkbox = ({ label, checked, onPress }) => {
       <TouchableOpacity
         style={styles.touchable}
         onPress={onPress}
-        activeOpacity={0.7}
+        activeOpacity={0.6}
       >
         <View style={[
           styles.box,
           {
             borderColor: checked ? colors.primary : colors.border,
-            backgroundColor: checked ? colors.primary : colors.card,
-            borderRadius: borderRadius.sm,
-            marginRight: spacing.sm
+            backgroundColor: checked ? colors.primary : colors.surface,
+            borderRadius: 6,
+            marginRight: spacing.md
           }
         ]}>
           {checked && <Text style={styles.checkmark}>✓</Text>}
         </View>
-        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.label, { color: colors.text, fontWeight: checked ? '700' : '600' }]}>{label}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -30,28 +30,28 @@ const Checkbox = ({ label, checked, onPress }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   touchable: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   box: {
     width: 20,
     height: 20,
-    borderWidth: 2,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkmark: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '900',
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    letterSpacing: 0.2,
   },
 });
 

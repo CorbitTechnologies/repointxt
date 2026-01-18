@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useCallback, memo } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, TextInput } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, ActivityIndicator, TextInput, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { getExtension } from '../utils/fileHelpers';
 
-const SelectionComponent = ({ tree, selectedFiles, setSelectedFiles, onGenerate, loading, preamble, setPreamble }) => {
+const SelectionComponent = ({ tree, selectedFiles, setSelectedFiles, onGenerate, loading, preamble, setPreamble, isMobile }) => {
   const { colors, borderRadius, spacing, shadows } = useTheme();
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [wrapFilters, setWrapFilters] = useState(false);
@@ -17,9 +17,8 @@ const SelectionComponent = ({ tree, selectedFiles, setSelectedFiles, onGenerate,
     const extMap = {};
     const extensions = new Set();
 
-    const sortedItems = [...tree].sort((a, b) => a.path.length - b.path.length);
-
-    sortedItems.forEach(item => {
+    // Single pass to build tree and extension map
+    tree.forEach(item => {
       const parts = item.path.split('/');
       let current = root;
       let currentPath = '';
@@ -27,8 +26,6 @@ const SelectionComponent = ({ tree, selectedFiles, setSelectedFiles, onGenerate,
       if (item.type === 'blob') {
         const ext = getExtension(item.path);
         extensions.add(ext);
-
-        // Build extension map
         if (!extMap[ext]) extMap[ext] = [];
         extMap[ext].push(item);
       }
@@ -56,26 +53,16 @@ const SelectionComponent = ({ tree, selectedFiles, setSelectedFiles, onGenerate,
       });
     });
 
-    // Build folder files map
-    const blobs = tree.filter(i => i.type === 'blob');
-    const allPaths = new Set();
-
-    tree.forEach(i => {
-      const parts = i.path.split('/');
-      let p = '';
-      parts.slice(0, -1).forEach(part => {
-        p = p ? `${p}/${part}` : part;
-        allPaths.add(p);
-      });
-    });
-
-    allPaths.forEach(p => {
-      folderMap[p] = blobs.filter(b => b.path.startsWith(p + '/'));
-    });
-
+    // Optimized folder files map (O(N) instead of O(N^2))
     tree.forEach(item => {
-      if (item.type === 'tree' && !folderMap[item.path]) {
-        folderMap[item.path] = blobs.filter(b => b.path.startsWith(item.path + '/'));
+      if (item.type === 'blob') {
+        const parts = item.path.split('/');
+        let pathAcc = '';
+        for (let i = 0; i < parts.length - 1; i++) {
+          pathAcc = pathAcc ? `${pathAcc}/${parts[i]}` : parts[i];
+          if (!folderMap[pathAcc]) folderMap[pathAcc] = [];
+          folderMap[pathAcc].push(item);
+        }
       }
     });
 
@@ -185,190 +172,243 @@ const SelectionComponent = ({ tree, selectedFiles, setSelectedFiles, onGenerate,
     setExpandedFolders(new Set());
   }, []);
 
-  const renderTree = useCallback((obj, depth = 0) => {
-    return Object.entries(obj)
+  const TreeNode = useCallback(({ node, depth }) => {
+    const isFile = node.type === 'blob';
+    const checked = isFile ? isSelected(node.path) : isFolderSelected(node.path);
+    const partial = !isFile && isFolderPartial(node.path);
+    const hasChildren = Object.keys(node.children).length > 0;
+    const isExpanded = expandedFolders.has(node.path);
+
+    return (
+      <View style={{ marginLeft: depth * (isMobile ? 8 : 12) }}>
+        <View style={styles.treeItem}>
+          {/* Expand/Collapse for folders */}
+          {!isFile && hasChildren ? (
+            <TouchableOpacity
+              onPress={() => toggleFolder(node.path)}
+              style={styles.expandButton}
+            >
+              <Text style={[styles.expandIcon, { color: colors.textSecondary }]}>
+                {isExpanded ? '▼' : '▶'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.expandPlaceholder} />
+          )}
+
+          <TouchableOpacity
+            style={styles.selectableRow}
+            onPress={() => toggleSelect(node, !checked)}
+            activeOpacity={0.6}
+          >
+            <View style={[
+              styles.miniCheckbox,
+              {
+                borderColor: checked || partial ? colors.primary : colors.border,
+                backgroundColor: checked ? colors.primary : partial ? colors.primaryLight || colors.primary + '40' : 'transparent',
+                borderRadius: 4
+              }
+            ]}>
+              {checked && <Text style={styles.miniCheckmark}>✓</Text>}
+              {partial && !checked && <Text style={[styles.miniCheckmark, { color: colors.primary }]}>–</Text>}
+            </View>
+            <Text style={[styles.treeIcon, { color: isFile ? colors.textSecondary : colors.warning }]}>
+              {isFile ? '📄' : isExpanded ? '📂' : '📁'}
+            </Text>
+            <Text style={[styles.treeText, { color: colors.text }]} numberOfLines={1}>
+              {node.name}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Only render children if folder is expanded */}
+        {!isFile && hasChildren && isExpanded && (
+          <View>
+            {Object.entries(node.children)
+              .sort(([aName, aNode], [bName, bNode]) => {
+                if (aNode.type !== bNode.type) {
+                  return aNode.type === 'tree' ? -1 : 1;
+                }
+                return aName.localeCompare(bName);
+              })
+              .map(([key, childNode]) => (
+                <TreeNode key={childNode.path} node={childNode} depth={depth + 1} />
+              ))}
+          </View>
+        )}
+      </View>
+    );
+  }, [isSelected, isFolderSelected, isFolderPartial, expandedFolders, toggleFolder, toggleSelect, colors, isMobile]);
+
+  const treeContent = useMemo(() => {
+    return Object.entries(treeObj)
       .sort(([aName, aNode], [bName, bNode]) => {
         if (aNode.type !== bNode.type) {
           return aNode.type === 'tree' ? -1 : 1;
         }
         return aName.localeCompare(bName);
       })
-      .map(([key, node]) => {
-        const isFile = node.type === 'blob';
-        const checked = isFile ? isSelected(node.path) : isFolderSelected(node.path);
-        const partial = !isFile && isFolderPartial(node.path);
-        const hasChildren = Object.keys(node.children).length > 0;
-        const isExpanded = expandedFolders.has(node.path);
-
-        return (
-          <View key={node.path} style={{ marginLeft: depth * 12 }}>
-            <View style={styles.treeItem}>
-              {/* Expand/Collapse for folders */}
-              {!isFile && hasChildren ? (
-                <TouchableOpacity
-                  onPress={() => toggleFolder(node.path)}
-                  style={styles.expandButton}
-                >
-                  <Text style={[styles.expandIcon, { color: colors.textSecondary }]}>
-                    {isExpanded ? '▼' : '▶'}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.expandPlaceholder} />
-              )}
-
-              <TouchableOpacity
-                style={styles.selectableRow}
-                onPress={() => toggleSelect(node, !checked)}
-                activeOpacity={0.6}
-              >
-                <View style={[
-                  styles.miniCheckbox,
-                  {
-                    borderColor: checked || partial ? colors.primary : colors.border,
-                    backgroundColor: checked ? colors.primary : partial ? colors.primaryLight || colors.primary + '40' : 'transparent',
-                    borderRadius: 4
-                  }
-                ]}>
-                  {checked && <Text style={styles.miniCheckmark}>✓</Text>}
-                  {partial && !checked && <Text style={[styles.miniCheckmark, { color: colors.primary }]}>–</Text>}
-                </View>
-                <Text style={[styles.treeIcon, { color: isFile ? colors.textSecondary : colors.warning }]}>
-                  {isFile ? '📄' : isExpanded ? '📂' : '📁'}
-                </Text>
-                <Text style={[styles.treeText, { color: colors.text }]} numberOfLines={1}>
-                  {key}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Only render children if folder is expanded */}
-            {!isFile && hasChildren && isExpanded && renderTree(node.children, depth + 1)}
-          </View>
-        );
-      });
-  }, [isSelected, isFolderSelected, isFolderPartial, expandedFolders, toggleFolder, toggleSelect, colors]);
+      .map(([key, node]) => (
+        <TreeNode key={node.path} node={node} depth={0} />
+      ));
+  }, [treeObj, TreeNode]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card, borderRadius: borderRadius.lg, padding: spacing.md, ...shadows.md }]}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>File Selection</Text>
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: colors.card,
+        borderRadius: isMobile ? borderRadius.lg : borderRadius.xl,
+        padding: isMobile ? spacing.sm : spacing.md,
+        ...shadows.lg
+      }
+    ]}>
+      <View style={[styles.header, { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center' }]}>
+        <View style={{ marginBottom: isMobile ? 8 : 10 }}>
+          <Text style={[styles.title, { color: colors.text, fontSize: isMobile ? 18 : 20 }]}>Selection</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: isMobile ? 11 : 12 }]}>Choose files to include in output</Text>
+        </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setSelectedFiles(tree.filter(i => i.type === 'blob'))}>
-            <Text style={[styles.actionText, { color: colors.primary, marginRight: 12 }]}>Select All</Text>
+          <TouchableOpacity
+            style={[styles.miniAction, { backgroundColor: colors.surface }]}
+            onPress={() => setSelectedFiles(tree.filter(i => i.type === 'blob'))}
+          >
+            <Text style={[styles.actionText, { color: colors.primary }]}>All</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSelectedFiles([])}>
-            <Text style={[styles.actionText, { color: colors.error }]}>Clear</Text>
+          <TouchableOpacity
+            style={[styles.miniAction, { backgroundColor: colors.surface }]}
+            onPress={() => setSelectedFiles([])}
+          >
+            <Text style={[styles.actionText, { color: colors.error }]}>None</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={styles.filterHeader}>
-        <Text style={[styles.filterTitle, { color: colors.textSecondary }]}>Filter by format:</Text>
-        <TouchableOpacity onPress={() => setWrapFilters(!wrapFilters)}>
-          <Text style={[styles.toggleText, { color: colors.primary }]}>
-            {wrapFilters ? 'Scroll View' : 'Show All'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {wrapFilters ? (
-        <View style={styles.extensionFilterWrapped}>
-          {allExtensions.map(ext => {
-            const active = extensionActiveStates[ext];
-            return (
-              <TouchableOpacity
-                key={ext}
-                style={[
-                  styles.extChip,
-                  {
-                    backgroundColor: active ? colors.primary : colors.surface,
-                    borderColor: colors.border,
-                    marginBottom: 8
-                  }
-                ]}
-                onPress={() => toggleExtension(ext, !active)}
-              >
-                <Text style={[styles.extChipText, { color: active ? '#fff' : colors.text }]}>
-                  {ext}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      <View style={styles.filterSection}>
+        <View style={styles.filterHeader}>
+          <Text style={[styles.filterTitle, { color: colors.textSecondary }]}>Filter by Type</Text>
+          <TouchableOpacity onPress={() => setWrapFilters(!wrapFilters)}>
+            <Text style={[styles.toggleText, { color: colors.primary }]}>
+              {wrapFilters ? 'View Less' : 'View All'}
+            </Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.extensionFilter}>
-          {allExtensions.map(ext => {
-            const active = extensionActiveStates[ext];
-            return (
-              <TouchableOpacity
-                key={ext}
-                style={[
-                  styles.extChip,
-                  {
-                    backgroundColor: active ? colors.primary : colors.surface,
-                    borderColor: colors.border
-                  }
-                ]}
-                onPress={() => toggleExtension(ext, !active)}
-              >
-                <Text style={[styles.extChipText, { color: active ? '#fff' : colors.text }]}>
-                  {ext}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      )}
 
-      <View style={styles.treeHeader}>
-        <TouchableOpacity onPress={expandAll}>
-          <Text style={[styles.treeAction, { color: colors.primary }]}>Expand All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={collapseAll}>
-          <Text style={[styles.treeAction, { color: colors.textSecondary, marginLeft: 16 }]}>Collapse All</Text>
-        </TouchableOpacity>
+        <View style={[wrapFilters ? styles.extensionFilterWrapped : styles.extensionFilter]}>
+          {wrapFilters ? (
+            allExtensions.map(ext => {
+              const active = extensionActiveStates[ext];
+              return (
+                <TouchableOpacity
+                  key={ext}
+                  style={[
+                    styles.extChip,
+                    {
+                      backgroundColor: active ? colors.primary : colors.surface,
+                      borderColor: active ? colors.primary : colors.border,
+                      marginBottom: 8
+                    }
+                  ]}
+                  onPress={() => toggleExtension(ext, !active)}
+                >
+                  <Text style={[styles.extChipText, { color: active ? '#fff' : colors.text }]}>
+                    {ext}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {allExtensions.map(ext => {
+                const active = extensionActiveStates[ext];
+                return (
+                  <TouchableOpacity
+                    key={ext}
+                    style={[
+                      styles.extChip,
+                      {
+                        backgroundColor: active ? colors.primary : colors.surface,
+                        borderColor: active ? colors.primary : colors.border
+                      }
+                    ]}
+                    onPress={() => toggleExtension(ext, !active)}
+                  >
+                    <Text style={[styles.extChipText, { color: active ? '#fff' : colors.text }]}>
+                      {ext}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
       </View>
 
-      <View style={[styles.treeWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={true}>
-          <View style={styles.treeContainer}>
-            {renderTree(treeObj)}
-          </View>
-        </ScrollView>
+      <View style={styles.treeSection}>
+        <View style={styles.treeHeader}>
+          <TouchableOpacity onPress={expandAll} style={styles.treeActionButton}>
+            <Text style={[styles.treeAction, { color: colors.primary }]}>📂 Expand All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={collapseAll} style={[styles.treeActionButton, { marginLeft: 16 }]}>
+            <Text style={[styles.treeAction, { color: colors.textSecondary }]}>📁 Collapse All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.treeWrapper, { backgroundColor: colors.surface, borderColor: colors.border, height: isMobile ? 320 : 480 }]}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={true}>
+            <View style={styles.treeContainer}>
+              {treeContent}
+            </View>
+          </ScrollView>
+        </View>
       </View>
 
       <View style={styles.preambleContainer}>
-        <Text style={[styles.preambleTitle, { color: colors.text }]}>System Instructions (Preamble)</Text>
+        <Text style={[styles.label, { color: colors.text }]}>Preamble & Custom Instructions</Text>
         <TextInput
           style={[styles.preambleInput, {
             backgroundColor: colors.surface,
             color: colors.text,
             borderColor: colors.border,
-            borderRadius: borderRadius.md
+            borderRadius: borderRadius.lg,
+            padding: spacing.md,
           }]}
           value={preamble}
           onChangeText={setPreamble}
-          placeholder="Pre-fill your request, e.g. 'You are an expert React developer. Analyze this code for performance...'"
-          placeholderTextColor={colors.textSecondary}
+          placeholder="e.g. 'You are an AI assistant. Analyze the following code for bugs...'"
+          placeholderTextColor={colors.textPlaceholder}
           multiline
-          numberOfLines={3}
+          numberOfLines={4}
         />
       </View>
 
-      <View style={styles.footerRow}>
-        <Text style={[styles.countText, { color: colors.textSecondary }]}>
-          {selectedFiles.length} files selected
-        </Text>
+      <View style={[styles.footer, { borderTopColor: colors.border, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }]}>
+        <View style={{ marginBottom: isMobile ? 16 : 0, alignItems: isMobile ? 'center' : 'flex-start' }}>
+          <Text style={[styles.countText, { color: colors.text, fontSize: isMobile ? 14 : 16 }]}>
+            {selectedFiles.length} <Text style={{ fontWeight: '500', color: colors.textSecondary }}>files selected</Text>
+          </Text>
+        </View>
         <TouchableOpacity
-          style={[styles.generateButton, { backgroundColor: colors.primary, borderRadius: borderRadius.md, opacity: loading || selectedFiles.length === 0 ? 0.6 : 1 }]}
+          style={[
+            styles.generateButton,
+            {
+              backgroundColor: colors.primary,
+              borderRadius: borderRadius.lg,
+              opacity: loading || selectedFiles.length === 0 ? 0.6 : 1,
+              paddingVertical: isMobile ? 16 : 14,
+              ...shadows.md
+            }
+          ]}
           onPress={() => onGenerate()}
           disabled={loading || selectedFiles.length === 0}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.generateButtonText}>Generate Text</Text>
+            <View style={styles.generateButtonContent}>
+              <Text style={styles.generateButtonText}>Generate Bundle</Text>
+              <Text style={styles.generateButtonIcon}>⚡</Text>
+            </View>
           )}
         </TouchableOpacity>
       </View>
@@ -378,88 +418,101 @@ const SelectionComponent = ({ tree, selectedFiles, setSelectedFiles, onGenerate,
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
     width: '100%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
     marginBottom: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
+    gap: 8,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+  miniAction: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   actionText: {
     fontSize: 12,
-    fontWeight: '700',
-  },
-  filterTitle: {
-    fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    letterSpacing: 1,
-    marginBottom: 8,
+  },
+  filterSection: {
+    marginBottom: 16,
   },
   filterHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  filterTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   toggleText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   extensionFilter: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    maxHeight: 40,
+    height: 40,
   },
   extensionFilterWrapped: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
   },
   extChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
-    height: 32,
+    borderWidth: 1.5,
+    marginRight: 10,
     justifyContent: 'center',
   },
   extChipText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  treeSection: {
+    marginBottom: 24,
   },
   treeHeader: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  treeActionButton: {
+    paddingVertical: 4,
   },
   treeAction: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   treeWrapper: {
-    height: 350,
-    borderWidth: 1,
-    borderRadius: 8,
+    height: 380,
+    borderWidth: 1.5,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 16,
   },
   scrollView: {
     flex: 1,
   },
   treeContainer: {
-    padding: 12,
+    padding: 16,
   },
   treeItem: {
     flexDirection: 'row',
@@ -467,13 +520,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   expandButton: {
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   expandPlaceholder: {
-    width: 20,
+    width: 24,
   },
   expandIcon: {
     fontSize: 10,
@@ -482,64 +535,77 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    paddingVertical: 2,
   },
   miniCheckbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1.5,
-    marginRight: 8,
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   miniCheckmark: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '900',
   },
   treeIcon: {
-    fontSize: 14,
-    marginRight: 6,
+    fontSize: 16,
+    marginRight: 8,
   },
   treeText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     flex: 1,
   },
-  footerRow: {
+  preambleContainer: {
+    marginBottom: 32,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  preambleInput: {
+    borderWidth: 1.5,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: 24,
+    borderTopWidth: 1,
   },
   countText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '800',
   },
   generateButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      web: { cursor: 'pointer' }
+    })
+  },
+  generateButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   generateButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  preambleContainer: {
-    marginBottom: 20,
-  },
-  preambleTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  preambleInput: {
-    borderWidth: 1,
-    padding: 12,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    fontSize: 13,
+  generateButtonIcon: {
+    fontSize: 16,
   },
 });
 

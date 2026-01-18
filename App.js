@@ -8,6 +8,7 @@ import {
   Alert,
   TouchableOpacity,
   SafeAreaView,
+  useWindowDimensions,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
@@ -18,8 +19,11 @@ import { useRepoManager } from './hooks/useRepoManager';
 import { useTheme } from './hooks/useTheme';
 
 export default function App() {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const theme = useTheme();
   const { colors, borderRadius, spacing, shadows } = theme;
+  const scrollViewRef = React.useRef(null);
 
   const {
     githubUrl, setGithubUrl,
@@ -50,6 +54,7 @@ export default function App() {
     activeTab, setActiveTab,
     tokenOptimizationLevel, setTokenOptimizationLevel,
     disabledExtensions, setDisabledExtensions,
+    respectGitignore, setRespectGitignore,
 
     fetchGitHubRepo,
     generateGitHubText,
@@ -63,6 +68,16 @@ export default function App() {
   } = useRepoManager();
 
   const activeOutput = activeTab === 'github' ? githubOutput : localOutput;
+
+  // Auto-scroll to bottom when output is generated
+  React.useEffect(() => {
+    if (activeOutput) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [activeOutput]);
+
   const activeTokenCount = activeTab === 'github' ? githubTokenCount : localTokenCount;
   const showSelection = activeTab === 'github' ? showGithubSelection : showLocalSelection;
 
@@ -95,70 +110,96 @@ export default function App() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { padding: spacing.md }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: isMobile ? spacing.sm : spacing.md,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.xl
+          }
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={[styles.logo, { color: colors.text }]}>repo<Text style={{ color: colors.primary }}>2</Text>txt</Text>
-          <Text style={[styles.tagline, { color: colors.textSecondary }]}>Optimized repository conversion for LLMs</Text>
-        </View>
-        <InputSection
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          githubUrl={githubUrl}
-          setGithubUrl={setGithubUrl}
-          githubToken={githubToken}
-          setGithubToken={setGithubToken}
-          urlHistory={urlHistory}
-          ignorePatterns={ignorePatterns}
-          setIgnorePatterns={setIgnorePatterns}
-          removeComments={removeComments}
-          setRemoveComments={setRemoveComments}
-          removeExtraWhitespace={removeExtraWhitespace}
-          setRemoveExtraWhitespace={setRemoveExtraWhitespace}
-          includeOnlyCode={includeOnlyCode}
-          setIncludeOnlyCode={setIncludeOnlyCode}
-          maxFileSize={maxFileSize}
-          setMaxFileSize={setMaxFileSize}
-          loading={loading}
-          fetchGitHubRepo={fetchGitHubRepo}
-          copyDirectoryStructure={() => copyToClipboard(dirStructure, 'Structure copied!')}
-          pickLocalFiles={pickLocalFiles}
-          pickLocalDirectory={pickLocalDirectory}
-          output={activeOutput}
-          dirStructure={activeTab === 'github' ? dirStructure : ''}
-          isDragging={isDragging}
-          handleDragEnter={handleDragEnter}
-          handleDragLeave={handleDragLeave}
-          handleDragOver={handleDragOver}
-          handleDrop={handleDrop}
-          tokenOptimizationLevel={tokenOptimizationLevel}
-          setTokenOptimizationLevel={setTokenOptimizationLevel}
-        />
-        {showSelection && (
-          <SelectionComponent
-            tree={activeTab === 'github' ? treeData?.tree : localTreeData?.tree}
-            selectedFiles={activeTab === 'github' ? githubSelectedFiles : localSelectedFiles}
-            setSelectedFiles={activeTab === 'github' ? setGithubSelectedFiles : setLocalSelectedFiles}
-            onGenerate={activeTab === 'github' ? generateGitHubText : generateLocalText}
-            loading={loading}
-            preamble={preamble}
-            setPreamble={setPreamble}
-          />
-        )}
-        {activeOutput ? (
-          <View style={styles.outputContainer}>
-            <OutputSection
-              output={activeOutput}
-              tokenCount={activeTokenCount}
-              onCopy={() => copyToClipboard(activeOutput)}
-              onDownload={() => downloadText(activeOutput)}
-            />
+        <View style={[styles.header, { marginTop: isMobile ? 8 : 12 }]}>
+          <View style={[styles.badge, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.badgeText, { color: colors.primary }]}>v1.0.0</Text>
           </View>
-        ) : null}
+          <Text style={[styles.logo, { color: colors.text, fontSize: isMobile ? 28 : 36 }]}>
+            repo<Text style={{ color: colors.primary }}>2</Text>txt
+          </Text>
+          <Text style={[styles.tagline, { color: colors.textSecondary, fontSize: isMobile ? 14 : 15 }]}>
+            Convert codebases into LLM-optimized prompts in seconds
+          </Text>
+        </View>
+        <View style={styles.mainContent}>
+          <InputSection
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            githubUrl={githubUrl}
+            setGithubUrl={setGithubUrl}
+            githubToken={githubToken}
+            setGithubToken={setGithubToken}
+            urlHistory={urlHistory}
+            ignorePatterns={ignorePatterns}
+            setIgnorePatterns={setIgnorePatterns}
+            removeComments={removeComments}
+            setRemoveComments={setRemoveComments}
+            removeExtraWhitespace={removeExtraWhitespace}
+            setRemoveExtraWhitespace={setRemoveExtraWhitespace}
+            includeOnlyCode={includeOnlyCode}
+            setIncludeOnlyCode={setIncludeOnlyCode}
+            maxFileSize={maxFileSize}
+            setMaxFileSize={setMaxFileSize}
+            loading={loading}
+            fetchGitHubRepo={fetchGitHubRepo}
+            copyDirectoryStructure={() => copyToClipboard(dirStructure, 'Structure copied!')}
+            pickLocalFiles={pickLocalFiles}
+            pickLocalDirectory={pickLocalDirectory}
+            output={activeOutput}
+            dirStructure={activeTab === 'github' ? dirStructure : ''}
+            isDragging={isDragging}
+            handleDragEnter={handleDragEnter}
+            handleDragLeave={handleDragLeave}
+            handleDragOver={handleDragOver}
+            handleDrop={handleDrop}
+            tokenOptimizationLevel={tokenOptimizationLevel}
+            setTokenOptimizationLevel={setTokenOptimizationLevel}
+            respectGitignore={respectGitignore}
+            setRespectGitignore={setRespectGitignore}
+            isMobile={isMobile}
+          />
+          {showSelection && (
+            <View style={styles.selectionWrapper}>
+              <SelectionComponent
+                tree={activeTab === 'github' ? treeData?.tree : localTreeData?.tree}
+                selectedFiles={activeTab === 'github' ? githubSelectedFiles : localSelectedFiles}
+                setSelectedFiles={activeTab === 'github' ? setGithubSelectedFiles : setLocalSelectedFiles}
+                onGenerate={activeTab === 'github' ? generateGitHubText : generateLocalText}
+                loading={loading}
+                preamble={preamble}
+                setPreamble={setPreamble}
+                isMobile={isMobile}
+              />
+            </View>
+          )}
+          {activeOutput ? (
+            <View style={styles.outputContainer}>
+              <OutputSection
+                output={activeOutput}
+                tokenCount={activeTokenCount}
+                onCopy={() => copyToClipboard(activeOutput)}
+                onDownload={() => downloadText(activeOutput)}
+                isMobile={isMobile}
+              />
+            </View>
+          ) : null}
+        </View>
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>Made for AI developers • GitHub • Privacy First</Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }]}>
+            Built with ❤️ for the AI community • Privacy First • No Data Stored
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -179,30 +220,50 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    marginTop: 20,
-    marginBottom: 32,
+    marginBottom: 24,
     alignItems: 'center',
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   logo: {
-    fontSize: 32,
     fontWeight: '900',
-    letterSpacing: -1.5,
+    letterSpacing: -1,
   },
   tagline: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 4,
+    fontWeight: '500',
+    marginTop: 6,
+    textAlign: 'center',
+    maxWidth: 400,
+    opacity: 0.8,
+    lineHeight: 18,
+  },
+  mainContent: {
+    width: '100%',
+  },
+  selectionWrapper: {
+    marginTop: 20,
   },
   outputContainer: {
-    marginTop: 32,
+    marginTop: 20,
   },
   footer: {
-    marginTop: 48,
+    marginTop: 40,
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 24,
   },
   footerText: {
-    fontSize: 12,
     fontWeight: '500',
+    opacity: 0.5,
+    textAlign: 'center',
   },
 });

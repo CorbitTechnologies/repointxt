@@ -6,33 +6,49 @@ const TabSwitcher = ({ activeTab, setActiveTab }) => {
   const { colors, borderRadius, spacing, shadows } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.xs }]}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderRadius: borderRadius.xl, padding: spacing.xs }]}>
       <TouchableOpacity
         style={[
           styles.tab,
-          activeTab === 'github' && { backgroundColor: colors.card, ...shadows.sm }
+          activeTab === 'github' && {
+            backgroundColor: colors.card,
+            ...shadows.sm,
+            borderRadius: borderRadius.lg
+          }
         ]}
         onPress={() => setActiveTab('github')}
+        activeOpacity={0.7}
       >
         <Text style={[
           styles.tabText,
-          { color: activeTab === 'github' ? colors.primary : colors.textSecondary }
+          {
+            color: activeTab === 'github' ? colors.primary : colors.textSecondary,
+            fontWeight: activeTab === 'github' ? '800' : '600'
+          }
         ]}>
-          📦 GitHub
+          📦 GitHub Repo
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[
           styles.tab,
-          activeTab === 'local' && { backgroundColor: colors.card, ...shadows.sm }
+          activeTab === 'local' && {
+            backgroundColor: colors.card,
+            ...shadows.sm,
+            borderRadius: borderRadius.lg
+          }
         ]}
         onPress={() => setActiveTab('local')}
+        activeOpacity={0.7}
       >
         <Text style={[
           styles.tabText,
-          { color: activeTab === 'local' ? colors.primary : colors.textSecondary }
+          {
+            color: activeTab === 'local' ? colors.primary : colors.textSecondary,
+            fontWeight: activeTab === 'local' ? '800' : '600'
+          }
         ]}>
-          📁 Local Files
+          📁 Local Project
         </Text>
       </TouchableOpacity>
     </View>
@@ -42,18 +58,19 @@ const TabSwitcher = ({ activeTab, setActiveTab }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tabText: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
 });
 

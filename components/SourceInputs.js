@@ -9,9 +9,11 @@ const SourceInputs = ({
   setGithubToken,
   urlHistory = [],
 }) => {
-  const { colors, borderRadius, spacing } = useTheme();
+  const { colors, borderRadius, spacing, shadows } = useTheme();
   const urlInputRef = useRef(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isUrlFocused, setIsUrlFocused] = useState(false);
+  const [isTokenFocused, setIsTokenFocused] = useState(false);
   const [filteredHistory, setFilteredHistory] = useState([]);
 
   // Filter history based on current input
@@ -37,54 +39,71 @@ const SourceInputs = ({
   return (
     <View style={styles.container}>
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Repository URL</Text>
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Repository URL</Text>
+        </View>
         <View style={{ position: 'relative' }}>
           <TextInput
             ref={urlInputRef}
             style={[styles.input, {
               backgroundColor: colors.surface,
-              borderColor: colors.border,
+              borderColor: isUrlFocused ? colors.primary : colors.border,
               color: colors.text,
-              borderRadius: borderRadius.md,
-              padding: spacing.md
+              borderRadius: borderRadius.lg,
+              padding: spacing.sm,
+              borderWidth: 1.5,
             }]}
             placeholder="https://github.com/owner/repo"
             placeholderTextColor={colors.textPlaceholder}
             value={githubUrl}
             onChangeText={setGithubUrl}
-            onFocus={() => !!urlHistory.length && !githubUrl && setShowSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            onFocus={() => {
+              setIsUrlFocused(true);
+              if (!!urlHistory.length && !githubUrl) setShowSuggestions(true);
+            }}
+            onBlur={() => {
+              setIsUrlFocused(false);
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
             autoCapitalize="none"
             autoCorrect={false}
-          />{Platform.OS === 'web' && showSuggestions && filteredHistory.length > 0 && (
+          />
+          {Platform.OS === 'web' && showSuggestions && filteredHistory.length > 0 && (
             <View style={[styles.suggestionsContainer, {
               backgroundColor: colors.card,
               borderColor: colors.border,
               borderRadius: borderRadius.md,
-            }]}>{filteredHistory.slice(0, 5).map((url, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.suggestionItem, {
-                  borderBottomColor: colors.border,
-                  borderBottomWidth: index < filteredHistory.length - 1 ? 1 : 0,
-                }]}
-                onPress={() => handleSuggestionClick(url)}
-              >
-                <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={1}>
-                  {url}
-                </Text>
-              </TouchableOpacity>
-            ))}</View>
-          )}</View>
+              marginTop: 6,
+              ...shadows.lg
+            }]}>
+              {filteredHistory.slice(0, 5).map((url, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.suggestionItem, {
+                    borderBottomColor: colors.border,
+                    borderBottomWidth: index < Math.min(filteredHistory.length, 5) - 1 ? 1 : 0,
+                  }]}
+                  onPress={() => handleSuggestionClick(url)}
+                >
+                  <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={1}>
+                    {url}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
       </View>
       <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>GitHub Token</Text>{!!githubToken && (
-              <View style={[styles.savedIndicator, { backgroundColor: colors.success || '#10b981' }]}>
-                <Text style={styles.savedText}>SAVED</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>GitHub Token</Text>
+            {!!githubToken && (
+              <View style={[styles.savedIndicator, { backgroundColor: colors.success + '20' }]}>
+                <Text style={[styles.savedText, { color: colors.success }]}>SAVED</Text>
               </View>
-            )}</View>
+            )}
+          </View>
           <TouchableOpacity onPress={() => Linking.openURL('https://github.com/settings/tokens/new?description=repo2txt&scopes=repo')}>
             <Text style={[styles.link, { color: colors.primary }]}>Get Token</Text>
           </TouchableOpacity>
@@ -92,15 +111,18 @@ const SourceInputs = ({
         <TextInput
           style={[styles.input, {
             backgroundColor: colors.surface,
-            borderColor: colors.border,
+            borderColor: isTokenFocused ? colors.primary : colors.border,
             color: colors.text,
-            borderRadius: borderRadius.md,
-            padding: spacing.md
+            borderRadius: borderRadius.lg,
+            padding: spacing.sm,
+            borderWidth: 1.5,
           }]}
-          placeholder="ghp_xxxxxxxxxxxx (Optional)"
+          placeholder="ghp_xxxxxxxxxxxx (Optional for public repos)"
           placeholderTextColor={colors.textPlaceholder}
           value={githubToken}
           onChangeText={setGithubToken}
+          onFocus={() => setIsTokenFocused(true)}
+          onBlur={() => setIsTokenFocused(false)}
           autoCapitalize="none"
           autoCorrect={false}
           secureTextEntry={true}
@@ -112,70 +134,57 @@ const SourceInputs = ({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
+    gap: 12,
   },
   inputGroup: {
-    gap: 8,
+    gap: 6,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 2,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   input: {
-    fontSize: 15,
+    fontSize: 14,
     borderWidth: 1,
+    fontWeight: '500',
   },
   link: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   savedIndicator: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   savedText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
   suggestionsContainer: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    marginTop: 4,
-    borderWidth: 1,
-    maxHeight: 200,
-    overflow: 'hidden',
     zIndex: 1000,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-      }
-    })
+    overflow: 'hidden',
   },
   suggestionItem: {
-    padding: 12,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        ':hover': {
-          opacity: 0.8,
-        }
-      }
-    })
+    padding: 10,
   },
   suggestionText: {
     fontSize: 14,
+    fontWeight: '500',
   },
 });
 

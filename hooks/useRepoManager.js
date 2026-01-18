@@ -7,13 +7,14 @@ import { optimizeContent } from '../utils/contentOptimization';
 import { DEFAULT_IGNORE_PATTERNS } from '../utils/constants';
 import { extractTextFromPdf } from '../utils/pdfProcessor';
 import { extractZipFile, isZipFile } from '../utils/zipProcessor';
-import { saveGitHubToken, loadGitHubToken, saveUrlToHistory, loadUrlHistory } from '../utils/storage';
+import { saveGitHubToken, loadGitHubToken, saveUrlToHistory, loadUrlHistory, saveAppSettings, loadAppSettings } from '../utils/storage';
 import { parseGitignore } from '../utils/gitignoreParser';
 import { getLanguageFromExtension } from '../utils/languageMap';
 import { getExtension } from '../utils/fileHelpers';
 
 // Concurrency limit for parallel fetching
-const BATCH_SIZE = 10;
+// Concurrency limit for parallel fetching
+const BATCH_SIZE = 25;
 
 export const useRepoManager = () => {
     // GitHub-specific states
@@ -47,6 +48,7 @@ export const useRepoManager = () => {
     const [activeTab, setActiveTab] = useState('github');
     const [tokenOptimizationLevel, setTokenOptimizationLevel] = useState(0); // 0: Standard, 1: Compact, 2: Minified
     const [disabledExtensions, setDisabledExtensions] = useState(new Set());
+    const [respectGitignore, setRespectGitignore] = useState(true);
 
     // Track blob URLs for cleanup (memory leak fix)
     const blobUrlsRef = useRef([]);
@@ -80,11 +82,49 @@ export const useRepoManager = () => {
         if (Platform.OS === 'web') {
             const savedToken = loadGitHubToken();
             const savedHistory = loadUrlHistory();
+            const settings = loadAppSettings();
 
             if (savedToken) setGithubToken(savedToken);
             if (savedHistory.length > 0) setUrlHistory(savedHistory);
+
+            if (settings) {
+                if (settings.ignorePatterns !== undefined) {
+                    const patterns = settings.ignorePatterns.split(',').map(p => p.trim()).filter(p => p);
+                    if (!patterns.some(p => p.startsWith('.env'))) {
+                        patterns.push('.env*');
+                    }
+                    setIgnorePatterns(patterns.join(', '));
+                }
+                if (settings.removeComments !== undefined) setRemoveComments(settings.removeComments);
+                if (settings.removeExtraWhitespace !== undefined) setRemoveExtraWhitespace(settings.removeExtraWhitespace);
+                if (settings.includeOnlyCode !== undefined) setIncludeOnlyCode(settings.includeOnlyCode);
+                if (settings.maxFileSize !== undefined) setMaxFileSize(settings.maxFileSize);
+                if (settings.tokenOptimizationLevel !== undefined) setTokenOptimizationLevel(settings.tokenOptimizationLevel);
+                if (settings.respectGitignore !== undefined) setRespectGitignore(settings.respectGitignore);
+            }
         }
     }, []);
+
+    // Save settings when they change
+    useEffect(() => {
+        if (Platform.OS !== 'web') return;
+
+        const settings = {
+            ignorePatterns,
+            removeComments,
+            removeExtraWhitespace,
+            includeOnlyCode,
+            maxFileSize,
+            tokenOptimizationLevel,
+            respectGitignore,
+        };
+
+        const timeout = setTimeout(() => {
+            saveAppSettings(settings);
+        }, 1000);
+
+        return () => clearTimeout(timeout);
+    }, [ignorePatterns, removeComments, removeExtraWhitespace, includeOnlyCode, maxFileSize, tokenOptimizationLevel, respectGitignore]);
 
     // Debounced token saving
     useEffect(() => {
@@ -96,6 +136,15 @@ export const useRepoManager = () => {
 
         return () => clearTimeout(timeout);
     }, [githubToken]);
+
+    // Update dirStructure whenever selection or patterns change
+    useEffect(() => {
+        if (activeTab === 'github' && treeData) {
+            setDirStructure(buildDirStructure(githubSelectedFiles, ignorePatterns, tokenOptimizationLevel));
+        } else if (activeTab === 'local' && localTreeData) {
+            setDirStructure(buildDirStructure(localSelectedFiles, ignorePatterns, tokenOptimizationLevel));
+        }
+    }, [githubSelectedFiles, localSelectedFiles, activeTab, treeData, localTreeData, ignorePatterns, tokenOptimizationLevel]);
 
     const fetchGitHubRepo = useCallback(async () => {
         if (!githubUrl.trim()) {
@@ -145,30 +194,31 @@ export const useRepoManager = () => {
             setRepoInfo(repoData);
             const defaultBranch = repoData.default_branch;
 
-            // Fetch .gitignore if it exists
-            try {
-                const gitignoreResponse = await fetch(
-                    `https://api.github.com/repos/${owner}/${cleanRepo}/contents/.gitignore`,
-                    { headers, signal: controller.signal }
-                );
+            let currentIgnorePatterns = ignorePatterns;
 
-                if (gitignoreResponse.ok) {
-                    const gitignoreData = await gitignoreResponse.json();
-                    const content = atob(gitignoreData.content);
-                    const gitignorePatterns = parseGitignore(content);
+            // Fetch .gitignore if enabled
+            if (respectGitignore) {
+                try {
+                    const fileResp = await fetch(
+                        `https://api.github.com/repos/${owner}/${cleanRepo}/contents/.gitignore`,
+                        { headers, signal: controller.signal }
+                    );
 
-                    if (gitignorePatterns.length > 0) {
-                        const newPatterns = gitignorePatterns.join(', ');
-                        setIgnorePatterns(prev => {
-                            if (prev) return `${prev}, ${newPatterns}`;
-                            return newPatterns;
-                        });
-                        Alert.alert('Smart .gitignore', 'Loaded ignore patterns from repository\'s .gitignore');
+                    if (fileResp.ok) {
+                        const fileData = await fileResp.json();
+                        const content = atob(fileData.content);
+                        const gitignorePatterns = parseGitignore(content);
+
+                        if (gitignorePatterns.length > 0) {
+                            const existing = currentIgnorePatterns.split(',').map(p => p.trim()).filter(p => p);
+                            const combined = [...new Set([...existing, ...gitignorePatterns])];
+                            currentIgnorePatterns = combined.join(', ');
+                            setIgnorePatterns(currentIgnorePatterns);
+                        }
                     }
+                } catch (err) {
+                    console.log('Error fetching .gitignore:', err);
                 }
-            } catch (err) {
-                // Ignore errors fetching .gitignore
-                console.log('No .gitignore found or failed to fetch');
             }
 
             const treeResponse = await fetch(
@@ -182,8 +232,15 @@ export const useRepoManager = () => {
 
             const fetchedTreeData = await treeResponse.json();
             setTreeData(fetchedTreeData);
-            setDirStructure(buildDirStructure(fetchedTreeData.tree, ignorePatterns));
+
+            // Pre-select files that are NOT ignored
+            const initialSelected = fetchedTreeData.tree.filter(item =>
+                item.type === 'blob' && !shouldIgnore(item.path, currentIgnorePatterns)
+            );
+            setGithubSelectedFiles(initialSelected);
+
             setShowGithubSelection(true);
+            setLoading(false);
 
             // Save URL to history after successful fetch
             saveUrlToHistory(githubUrl);
@@ -291,8 +348,8 @@ export const useRepoManager = () => {
             textParts.push(`> ${repoDescription}\n`);
         }
 
-        // Add Directory Structure
-        const treeStr = buildDirStructure(treeDataObj.tree, ignorePatterns, tokenOptimizationLevel);
+        // Add Directory Structure based on SELECTED files
+        const treeStr = buildDirStructure(filesToProcess, ignorePatterns, tokenOptimizationLevel);
         textParts.push(`## 1. Directory Structure\n\`\`\`text\n.\n${treeStr}\n\`\`\`\n`);
 
         textParts.push(`## 2. Codebase Context\n`);
@@ -426,8 +483,8 @@ export const useRepoManager = () => {
 
             textParts.push(`# Repository Analysis: Local Files\n`);
 
-            if (localTreeData) {
-                const treeStr = buildDirStructure(localTreeData.tree, ignorePatterns, tokenOptimizationLevel);
+            if (localSelectedFiles.length > 0) {
+                const treeStr = buildDirStructure(localSelectedFiles, ignorePatterns, tokenOptimizationLevel);
                 textParts.push(`## 1. Directory Structure\n\`\`\`text\n.\n${treeStr}\n\`\`\`\n`);
             }
 
@@ -878,6 +935,10 @@ export const useRepoManager = () => {
             }));
 
             setLocalTreeData({ tree: treeItems });
+
+            // Pre-select non-ignored files
+            setLocalSelectedFiles(treeItems.filter(item => !shouldIgnore(item.path, ignorePatterns)));
+
             setDisabledExtensions(new Set());
             setShowLocalSelection(true);
             setLoading(false);
@@ -920,6 +981,7 @@ export const useRepoManager = () => {
         activeTab, setActiveTab,
         tokenOptimizationLevel, setTokenOptimizationLevel,
         disabledExtensions, setDisabledExtensions,
+        respectGitignore, setRespectGitignore,
 
         // Handlers
         fetchGitHubRepo, generateGitHubText, generateLocalText, pickLocalDirectory, pickLocalFiles,

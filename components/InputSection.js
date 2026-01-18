@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, memo } from 'react';
 import { StyleSheet, Text, View, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import TabSwitcher from './TabSwitcher';
@@ -61,7 +61,7 @@ const InputSection = (props) => {
         {
           backgroundColor: props.isDragging ? colors.surface : colors.card,
           borderRadius: borderRadius.xl,
-          padding: spacing.lg,
+          padding: props.isMobile ? spacing.sm : spacing.md,
           borderColor: props.isDragging ? colors.primary : colors.border,
           ...shadows.md
         }
@@ -92,6 +92,8 @@ const InputSection = (props) => {
         setIgnorePatterns={props.setIgnorePatterns}
         tokenOptimizationLevel={props.tokenOptimizationLevel}
         setTokenOptimizationLevel={props.setTokenOptimizationLevel}
+        respectGitignore={props.respectGitignore}
+        setRespectGitignore={props.setRespectGitignore}
       />
     </View>
   );
@@ -107,9 +109,9 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    marginVertical: 24,
+    marginVertical: 16,
     width: '100%',
   },
 });
 
-export default InputSection;
+export default memo(InputSection);

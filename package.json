@@ -6,6 +6,7 @@
     "start": "expo start",
     "android": "expo start --android",
     "web": "expo start --web",
+    "build": "expo export --platform web",
     "eject": "expo eject"
   },
   "dependencies": {
