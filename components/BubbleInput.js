@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import Icon from './Icon';
 
 const BubbleInput = ({ patterns, setPatterns, placeholder }) => {
-    const { colors, borderRadius, spacing } = useTheme();
+    const { colors, borderRadius, spacing, isDark } = useTheme();
     const [inputValue, setInputValue] = useState('');
 
     const patternsArray = patterns
@@ -27,7 +28,7 @@ const BubbleInput = ({ patterns, setPatterns, placeholder }) => {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: borderRadius.lg }]}>
+        <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 6 }]}>
             <View style={styles.contentWrapper}>
                 <ScrollView
                     horizontal
@@ -37,11 +38,11 @@ const BubbleInput = ({ patterns, setPatterns, placeholder }) => {
                     {patternsArray.map((pattern, index) => (
                         <View
                             key={`${pattern}-${index}`}
-                            style={[styles.bubble, { backgroundColor: colors.primary, borderRadius: borderRadius.md }]}
+                            style={[styles.bubble, { backgroundColor: colors.primary, borderRadius: 4 }]}
                         >
-                            <Text style={styles.bubbleText}>{pattern}</Text>
+                            <Text style={[styles.bubbleText, { color: '#fff' }]}>{pattern}</Text>
                             <TouchableOpacity onPress={() => removePattern(pattern)} style={styles.removeButton}>
-                                <Text style={styles.removeText}>×</Text>
+                                <Icon name="x" size={10} color="#fff" />
                             </TouchableOpacity>
                         </View>
                     ))}
@@ -76,7 +77,7 @@ const BubbleInput = ({ patterns, setPatterns, placeholder }) => {
 
 const styles = StyleSheet.create({
     container: {
-        borderWidth: 1.5,
+        borderWidth: 1,
         minHeight: 48,
         paddingHorizontal: 8,
         justifyContent: 'center',

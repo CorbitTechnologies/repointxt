@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View, Linking, TouchableOpacity, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import Icon from './Icon';
 
 const SourceInputs = ({
   githubUrl,
@@ -10,60 +11,61 @@ const SourceInputs = ({
   urlHistory = [],
 }) => {
   const { colors, borderRadius, spacing, shadows } = useTheme();
-  const urlInputRef = useRef(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isUrlFocused, setIsUrlFocused] = useState(false);
   const [isTokenFocused, setIsTokenFocused] = useState(false);
   const [filteredHistory, setFilteredHistory] = useState([]);
 
-  // Filter history based on current input
   useEffect(() => {
     if (githubUrl && urlHistory.length > 0) {
       const filtered = urlHistory.filter(url =>
         url.toLowerCase().includes(githubUrl.toLowerCase()) && url !== githubUrl
       );
       setFilteredHistory(filtered);
-      setShowSuggestions(filtered.length > 0 && Platform.OS === 'web');
-    } else {
+      // Only show suggestions if we have a match and the input isn't exactly a matched URL
+      setShowSuggestions(filtered.length > 0 && isUrlFocused);
+    } else if (isUrlFocused && urlHistory.length > 0 && !githubUrl) {
       setFilteredHistory(urlHistory);
+      setShowSuggestions(true);
+    } else {
       setShowSuggestions(false);
     }
-  }, [githubUrl, urlHistory]);
+  }, [githubUrl, urlHistory, isUrlFocused]);
 
-  // Handle suggestion click
   const handleSuggestionClick = (url) => {
     setGithubUrl(url);
-    setShowSuggestions(false);
+    // Delay hiding to ensure the value is set
+    setTimeout(() => setShowSuggestions(false), 50);
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputGroup}>
+      <View style={[styles.inputGroup, { zIndex: 3000 }]}>
         <View style={styles.labelRow}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Repository URL</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Icon name="github" size={12} color={colors.textSecondary} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Repository URL</Text>
+          </View>
         </View>
         <View style={{ position: 'relative' }}>
           <TextInput
-            ref={urlInputRef}
             style={[styles.input, {
               backgroundColor: colors.surface,
               borderColor: isUrlFocused ? colors.primary : colors.border,
               color: colors.text,
-              borderRadius: borderRadius.lg,
-              padding: spacing.sm,
-              borderWidth: 1.5,
+              borderRadius: 6,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              borderWidth: 1,
             }]}
-            placeholder="https://github.com/owner/repo"
+            placeholder="owner/repo or full url"
             placeholderTextColor={colors.textPlaceholder}
             value={githubUrl}
             onChangeText={setGithubUrl}
-            onFocus={() => {
-              setIsUrlFocused(true);
-              if (!!urlHistory.length && !githubUrl) setShowSuggestions(true);
-            }}
+            onFocus={() => setIsUrlFocused(true)}
             onBlur={() => {
-              setIsUrlFocused(false);
-              setTimeout(() => setShowSuggestions(false), 200);
+              // Delay closing to allow clicking suggestions
+              setTimeout(() => setIsUrlFocused(false), 200);
             }}
             autoCapitalize="none"
             autoCorrect={false}
@@ -72,9 +74,14 @@ const SourceInputs = ({
             <View style={[styles.suggestionsContainer, {
               backgroundColor: colors.card,
               borderColor: colors.border,
-              borderRadius: borderRadius.md,
-              marginTop: 6,
-              ...shadows.lg
+              borderRadius: 8,
+              marginTop: 4,
+              borderWidth: 1,
+              ...Platform.select({
+                web: {
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)'
+                }
+              })
             }]}>
               {filteredHistory.slice(0, 5).map((url, index) => (
                 <TouchableOpacity
@@ -84,28 +91,27 @@ const SourceInputs = ({
                     borderBottomWidth: index < Math.min(filteredHistory.length, 5) - 1 ? 1 : 0,
                   }]}
                   onPress={() => handleSuggestionClick(url)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={1}>
-                    {url}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Icon name="link" size={14} color={colors.primary} />
+                    <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={1}>
+                      {url.replace(/^https?:\/\/github\.com\//i, '')}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
       </View>
-      <View style={styles.inputGroup}>
+      <View style={[styles.inputGroup, { zIndex: 1000 }]}>
         <View style={styles.labelRow}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>GitHub Token</Text>
-            {!!githubToken && (
-              <View style={[styles.savedIndicator, { backgroundColor: colors.success + '20' }]}>
-                <Text style={[styles.savedText, { color: colors.success }]}>SAVED</Text>
-              </View>
-            )}
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Access Token</Text>
           </View>
-          <TouchableOpacity onPress={() => Linking.openURL('https://github.com/settings/tokens/new?description=repo2txt&scopes=repo')}>
-            <Text style={[styles.link, { color: colors.primary }]}>Get Token</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://github.com/settings/tokens/new')}>
+            <Icon name="external-link" size={12} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
         <TextInput
@@ -113,19 +119,19 @@ const SourceInputs = ({
             backgroundColor: colors.surface,
             borderColor: isTokenFocused ? colors.primary : colors.border,
             color: colors.text,
-            borderRadius: borderRadius.lg,
-            padding: spacing.sm,
-            borderWidth: 1.5,
+            borderRadius: 6,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            borderWidth: 1,
           }]}
-          placeholder="ghp_xxxxxxxxxxxx (Optional for public repos)"
+          placeholder="Optional for public repos"
           placeholderTextColor={colors.textPlaceholder}
           value={githubToken}
           onChangeText={setGithubToken}
           onFocus={() => setIsTokenFocused(true)}
           onBlur={() => setIsTokenFocused(false)}
-          autoCapitalize="none"
-          autoCorrect={false}
           secureTextEntry={true}
+          autoCapitalize="none"
         />
       </View>
     </View>
@@ -134,10 +140,10 @@ const SourceInputs = ({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: 10,
   },
   inputGroup: {
-    gap: 6,
+    gap: 4,
   },
   labelRow: {
     flexDirection: 'row',
@@ -146,45 +152,32 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   label: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   input: {
-    fontSize: 14,
-    borderWidth: 1,
+    fontSize: 13,
     fontWeight: '500',
-  },
-  link: {
-    fontSize: 12,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-  },
-  savedIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  savedText: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.8,
   },
   suggestionsContainer: {
     position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    zIndex: 1000,
+    zIndex: 9999,
     overflow: 'hidden',
   },
   suggestionItem: {
-    padding: 10,
+    padding: 12,
+    ...Platform.select({
+      web: { cursor: 'pointer' }
+    })
   },
   suggestionText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
 

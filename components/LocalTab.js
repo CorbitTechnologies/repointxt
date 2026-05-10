@@ -1,15 +1,17 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import Icon from './Icon';
 
 const LocalTab = ({
   loading,
   pickLocalFiles,
   pickLocalDirectory,
+  addLocalDirectory,
   isDragging,
   isMobile
 }) => {
-  const { colors, borderRadius, spacing, shadows } = useTheme();
+  const { colors, borderRadius, spacing, shadows, isDark } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -19,67 +21,78 @@ const LocalTab = ({
             styles.button,
             {
               backgroundColor: colors.surface,
-              borderRadius: borderRadius.lg,
-              borderWidth: 1.5,
+              borderRadius: borderRadius.md,
+              borderWidth: 1,
               borderColor: colors.border,
-              paddingVertical: isMobile ? 16 : 24
+              paddingVertical: isMobile ? 12 : 16
             }
           ]}
           onPress={() => pickLocalFiles()}
           disabled={loading}
           activeOpacity={0.7}
         >
-          <View style={[styles.iconContainer, { backgroundColor: colors.primary + '10' }]}>
-            <Text style={styles.icon}>📄</Text>
+          <View style={styles.iconContainer}>
+            <Icon name="file" size={18} color={colors.text} />
           </View>
-          <Text style={[styles.buttonText, { color: colors.text }]}>Select Files</Text>
-          <Text style={[styles.buttonSubtext, { color: colors.textSecondary }]}>Choose specific files</Text>
+          <Text style={[styles.buttonText, { color: colors.text }]}>Files</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.button,
             {
               backgroundColor: colors.surface,
-              borderRadius: borderRadius.lg,
-              borderWidth: 1.5,
+              borderRadius: borderRadius.md,
+              borderWidth: 1,
               borderColor: colors.border,
-              paddingVertical: isMobile ? 16 : 24
+              paddingVertical: isMobile ? 12 : 16
             }
           ]}
           onPress={() => pickLocalDirectory()}
           disabled={loading}
           activeOpacity={0.7}
         >
-          <View style={[styles.iconContainer, { backgroundColor: colors.secondary + '10' }]}>
-            <Text style={styles.icon}>📁</Text>
+          <View style={styles.iconContainer}>
+            <Icon name="folder" size={18} color={colors.text} />
           </View>
-          <Text style={[styles.buttonText, { color: colors.text }]}>Select Folder</Text>
-          <Text style={[styles.buttonSubtext, { color: colors.textSecondary }]}>Entire directory tree</Text>
+          <Text style={[styles.buttonText, { color: colors.text }]}>Folder</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.button,
+            {
+              backgroundColor: colors.primary,
+              borderRadius: borderRadius.md,
+              paddingVertical: isMobile ? 12 : 16,
+              ...shadows.sm
+            }
+          ]}
+          onPress={() => addLocalDirectory?.()}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          <View style={styles.iconContainer}>
+            <Icon name="folder" size={18} color={isDark ? '#000' : '#fff'} />
+          </View>
+          <Text style={[styles.buttonText, { color: isDark ? '#000' : '#fff' }]}>Add More</Text>
         </TouchableOpacity>
       </View>
 
       <View style={[
         styles.dragDropArea,
         {
-          backgroundColor: isDragging ? colors.primary + '15' : colors.surface,
-          borderColor: isDragging ? colors.primary : colors.border,
-          borderWidth: 2,
+          backgroundColor: isDragging ? colors.text + '10' : colors.surface,
+          borderColor: isDragging ? colors.text : colors.border,
+          borderWidth: 1,
           borderStyle: 'dashed',
-          borderRadius: borderRadius.xl,
-          marginTop: spacing.lg,
-          height: isMobile ? 120 : 160,
-          ...shadows.sm
+          borderRadius: borderRadius.lg,
+          marginTop: spacing.md,
+          height: isMobile ? 80 : 100,
         }
       ]}>
-        <Text style={[styles.dragIcon, { fontSize: isMobile ? 32 : 40 }]}>{isDragging ? '📥' : '☁️'}</Text>
-        <Text style={[styles.dragDropText, { color: isDragging ? colors.primary : colors.textSecondary, fontSize: isMobile ? 14 : 16 }]}>
-          {isDragging ? 'Drop to start scanning' : 'Drag & drop projects here'}
+        <Icon name="upload" size={24} color={isDragging ? colors.text : colors.textPlaceholder} />
+        <Text style={[styles.dragDropText, { color: isDragging ? colors.text : colors.textSecondary, fontSize: isMobile ? 12 : 14, marginTop: 8 }]}>
+          {isDragging ? 'Drop to scan' : 'Drag & drop projects here'}
         </Text>
-        {!isDragging && (
-          <Text style={[styles.dragDropHint, { color: colors.textPlaceholder, fontSize: isMobile ? 11 : 13 }]}>
-            Optimized for large repos
-          </Text>
-        )}
       </View>
     </View>
   );

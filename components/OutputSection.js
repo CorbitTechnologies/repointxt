@@ -1,62 +1,50 @@
 import React, { useMemo, memo } from 'react';
 import { StyleSheet, Text, View, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import Icon from './Icon';
 
 const OutputSection = ({ output, tokenCount, onCopy, onDownload, isMobile }) => {
-  const { colors, borderRadius, spacing, shadows } = useTheme();
-
-  // Memoize expensive line count calculation
-  const lineCount = useMemo(() => {
-    if (!output) return 0;
-    let count = 1;
-    for (let i = 0; i < output.length; i++) {
-      if (output[i] === '\n') count++;
-    }
-    return count;
-  }, [output]);
+  const { colors, borderRadius, spacing, shadows, isDark } = useTheme();
 
   if (!output) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card, borderRadius: isMobile ? borderRadius.lg : borderRadius.xl, padding: isMobile ? spacing.sm : spacing.md, ...shadows.lg }]}>
+    <View style={[styles.container, { backgroundColor: colors.card, borderRadius: 12, padding: spacing.md, ...shadows.lg }]}>
       <View style={styles.header}>
         <View style={styles.topRow}>
-          <View style={{ width: isMobile ? '100%' : 'auto' }}>
-            <Text style={[styles.title, { color: colors.text, fontSize: isMobile ? 18 : 20 }]}>Bundle Output</Text>
-            <View style={[styles.statsRow, { flexWrap: isMobile ? 'wrap' : 'nowrap' }]}>
-              <View style={[styles.inlineStat, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.statValue, { color: colors.primary }]}>{tokenCount.toLocaleString()}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>tokens</Text>
-              </View>
-              <View style={[styles.inlineStat, { backgroundColor: colors.surface }]}>
-                <Text style={[styles.statValue, { color: colors.secondary }]}>{output.length.toLocaleString()}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>chars</Text>
-              </View>
+          <View style={{ flex: 1, marginBottom: isMobile ? 12 : 0 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Icon name="copy" size={18} color={colors.text} />
+              <Text style={[styles.title, { color: colors.text, fontSize: 18 }]}>Bundle Output</Text>
+            </View>
+            <View style={styles.statsRow}>
+              <Text style={[styles.statValue, { color: colors.text }]}>{tokenCount.toLocaleString()} <Text style={styles.statLabel}>tokens</Text></Text>
             </View>
           </View>
 
-          <View style={[styles.headerActions, { width: isMobile ? '100%' : 'auto', flexDirection: isMobile ? 'column' : 'row' }]}>
+          <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.primaryAction, { backgroundColor: colors.primary, borderRadius: borderRadius.md, ...shadows.sm }]}
+              style={[styles.primaryAction, { backgroundColor: colors.primary, borderRadius: 8, ...shadows.sm }]}
               onPress={onCopy}
               activeOpacity={0.8}
             >
-              <Text style={styles.actionTextMain}>📋 Copy All</Text>
+              <Icon name="copy" size={16} color={isDark ? '#000' : '#fff'} />
+              <Text style={[styles.actionTextMain, { color: isDark ? '#000' : '#fff', marginLeft: 8 }]}>Copy</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.secondaryAction, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: borderRadius.md }]}
+              style={[styles.secondaryAction, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 8 }]}
               onPress={onDownload}
               activeOpacity={0.8}
             >
-              <Text style={[styles.actionTextSecondary, { color: colors.text }]}>⬇️ Download</Text>
+              <Icon name="download" size={16} color={colors.text} />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      <View style={[styles.outputWrapper, { backgroundColor: colors.darkBg || '#000', borderRadius: borderRadius.lg, borderColor: colors.border }]}>
+      <View style={[styles.outputWrapper, { backgroundColor: colors.surface, borderRadius: 8, borderColor: colors.border }]}>
         <ScrollView style={styles.outputBox} showsVerticalScrollIndicator={true}>
-          <Text style={[styles.outputText, { color: '#E2E8F0', fontSize: isMobile ? 12 : 13 }]}>
+          <Text style={[styles.outputText, { color: colors.text, fontSize: 12 }]}>
             {output}
           </Text>
         </ScrollView>
@@ -76,38 +64,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    marginBottom: 8,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
-  inlineStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  title: {
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  statsRow: {
+    marginTop: 4,
   },
   statValue: {
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '700',
   },
   statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    opacity: 0.8,
+    fontSize: 10,
+    opacity: 0.6,
   },
   headerActions: {
     flexDirection: 'row',
@@ -116,41 +91,35 @@ const styles = StyleSheet.create({
   primaryAction: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
   },
   secondaryAction: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    borderWidth: 1.5,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionTextMain: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  actionTextSecondary: {
     fontSize: 13,
     fontWeight: '700',
   },
   outputWrapper: {
-    borderWidth: 1.5,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   outputBox: {
-    maxHeight: 600,
-    padding: 12,
+    maxHeight: 400,
+    padding: 16,
   },
   outputText: {
-    fontSize: 13,
     fontFamily: Platform.select({
       ios: 'Menlo',
       android: 'monospace',
-      web: 'JetBrains Mono, Fira Code, ui-monospace, monospace'
+      web: 'ui-monospace, monospace'
     }),
-    lineHeight: 22,
+    lineHeight: 18,
   },
 });
 

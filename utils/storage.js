@@ -1,6 +1,12 @@
 import { Platform } from 'react-native';
 
 const STORAGE_KEYS = {
+    GITHUB_TOKEN: 'repointxt_github_token',
+    URL_HISTORY: 'repointxt_url_history',
+    APP_SETTINGS: 'repointxt_app_settings',
+};
+
+const LEGACY_STORAGE_KEYS = {
     GITHUB_TOKEN: 'repo2txt_github_token',
     URL_HISTORY: 'repo2txt_url_history',
     APP_SETTINGS: 'repo2txt_app_settings',
@@ -46,7 +52,8 @@ export const saveGitHubToken = (token) => {
 export const loadGitHubToken = () => {
     if (!isWeb) return '';
     try {
-        const obfuscated = localStorage.getItem(STORAGE_KEYS.GITHUB_TOKEN);
+        const obfuscated = localStorage.getItem(STORAGE_KEYS.GITHUB_TOKEN)
+            || localStorage.getItem(LEGACY_STORAGE_KEYS.GITHUB_TOKEN);
         return deobfuscate(obfuscated);
     } catch (error) {
         console.error('Failed to load GitHub token:', error);
@@ -89,7 +96,8 @@ export const saveUrlToHistory = (url) => {
 export const loadUrlHistory = () => {
     if (!isWeb) return [];
     try {
-        const history = localStorage.getItem(STORAGE_KEYS.URL_HISTORY);
+        const history = localStorage.getItem(STORAGE_KEYS.URL_HISTORY)
+            || localStorage.getItem(LEGACY_STORAGE_KEYS.URL_HISTORY);
         return history ? JSON.parse(history) : [];
     } catch (error) {
         console.error('Failed to load URL history:', error);
@@ -121,7 +129,8 @@ export const saveAppSettings = (settings) => {
 export const loadAppSettings = () => {
     if (!isWeb) return null;
     try {
-        const settings = localStorage.getItem(STORAGE_KEYS.APP_SETTINGS);
+        const settings = localStorage.getItem(STORAGE_KEYS.APP_SETTINGS)
+            || localStorage.getItem(LEGACY_STORAGE_KEYS.APP_SETTINGS);
         return settings ? JSON.parse(settings) : null;
     } catch (error) {
         console.error('Failed to load app settings:', error);

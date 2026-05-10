@@ -1,4 +1,4 @@
-# repo2txt
+# repointxt
 
 A React Native application (Web + Android) that converts GitHub repositories and local directories into a single text file optimized for Large Language Models (LLMs).
 
@@ -21,8 +21,8 @@ A React Native application (Web + Android) that converts GitHub repositories and
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yazz0dev/repo2txt.git
-cd repo2txt
+git clone https://github.com/yazz0dev/repointxt.git
+cd repointxt
 ```
 
 2. Install dependencies:

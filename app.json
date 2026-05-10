@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "repo2txt",
-    "slug": "repo2txt",
+    "name": "repointxt",
+    "slug": "repointxt",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,7 +25,14 @@
     },
     "web": {
       "favicon": "./assets/icon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "name": "repointxt | Repository to AI Context",
+      "shortName": "repointxt",
+      "description": "Instantly convert GitHub repositories and local folders into optimized AI context for LLMs with smart filtering.",
+      "lang": "en",
+      "themeColor": "#000000",
+      "backgroundColor": "#000000",
+      "display": "standalone"
     }
   }
 }

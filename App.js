@@ -9,12 +9,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   useWindowDimensions,
+  Linking,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { StatusBar } from 'expo-status-bar';
 import InputSection from './components/InputSection';
 import OutputSection from './components/OutputSection';
 import SelectionComponent from './components/SelectionComponent';
+import Icon from './components/Icon';
 import { useRepoManager } from './hooks/useRepoManager';
 import { useTheme } from './hooks/useTheme';
 
@@ -26,84 +28,51 @@ export default function App() {
   const scrollViewRef = React.useRef(null);
 
   const {
-    githubUrl, setGithubUrl,
-    githubToken, setGithubToken,
-    treeData,
-    repoInfo,
-    dirStructure, setDirStructure,
-    githubSelectedFiles, setGithubSelectedFiles,
-    githubOutput, setGithubOutput,
-    githubTokenCount,
-    showGithubSelection, setShowGithubSelection,
-    urlHistory,
-
-    localTreeData,
-    localSelectedFiles, setLocalSelectedFiles,
-    localOutput, setLocalOutput,
-    localTokenCount,
-    showLocalSelection, setShowLocalSelection,
-    isDragging,
-
-    loading,
-    ignorePatterns, setIgnorePatterns,
-    preamble, setPreamble,
-    removeComments, setRemoveComments,
-    removeExtraWhitespace, setRemoveExtraWhitespace,
-    includeOnlyCode, setIncludeOnlyCode,
-    maxFileSize, setMaxFileSize,
-    activeTab, setActiveTab,
-    tokenOptimizationLevel, setTokenOptimizationLevel,
-    disabledExtensions, setDisabledExtensions,
-    respectGitignore, setRespectGitignore,
-
-    fetchGitHubRepo,
-    generateGitHubText,
-    generateLocalText,
-    pickLocalDirectory,
+    loading, sources, githubUrl, setGithubUrl, githubToken, setGithubToken, urlHistory,
+    combinedOutput, isDragging, ignorePatterns, setIgnorePatterns, preamble, setPreamble,
+    removeComments, setRemoveComments, removeExtraWhitespace, setRemoveExtraWhitespace,
+    includeOnlyCode, setIncludeOnlyCode, maxFileSize, setMaxFileSize, activeTab, setActiveTab,
+    tokenOptimizationLevel, setTokenOptimizationLevel, respectGitignore, setRespectGitignore,
+    fetchGitHubRepo, pickLocalDirectory, generateText, removeSource,
+    treeData, selectedFiles, setSelectedFiles, githubTokenCount,
     pickLocalFiles,
-    handleDragEnter,
-    handleDragLeave,
-    handleDragOver,
-    handleDrop
+    handleDragEnter, handleDragLeave, handleDragOver, handleDrop
   } = useRepoManager();
 
-  const activeOutput = activeTab === 'github' ? githubOutput : localOutput;
-
-  // Auto-scroll to bottom when output is generated
   React.useEffect(() => {
-    if (activeOutput) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [activeOutput]);
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.title = 'repointxt | Repository to AI Context';
+    const ensureMeta = (selector, attrs) => {
+      let el = document.head.querySelector(selector);
+      if (!el) { el = document.createElement('meta'); Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v)); document.head.appendChild(el); }
+      return el;
+    };
 
-  const activeTokenCount = activeTab === 'github' ? githubTokenCount : localTokenCount;
-  const showSelection = activeTab === 'github' ? showGithubSelection : showLocalSelection;
+    ensureMeta('meta[name="description"]', { name: 'description' }).setAttribute('content', 'The ultimate developer tool to convert GitHub repositories and local folders into optimized AI context. Build comprehensive prompts for LLMs with smart filtering and token management.');
+    ensureMeta('meta[name="keywords"]', { name: 'keywords' }).setAttribute('content', 'repointxt, repository context, ai prompt engineering, codebase to text, github to prompt, token optimization, developer productivity');
+    ensureMeta('meta[property="og:title"]', { property: 'og:title' }).setAttribute('content', 'repointxt | Repository to AI Context Builder');
+    ensureMeta('meta[property="og:description"]', { property: 'og:description' }).setAttribute('content', 'Instantly convert codebases into high-quality AI prompts with smart filtering and token optimization.');
+    ensureMeta('meta[property="og:type"]', { property: 'og:type' }).setAttribute('content', 'website');
+  }, []);
 
-  const copyToClipboard = async (text, successMsg = 'Copied to clipboard!') => {
+  React.useEffect(() => {
+    if (combinedOutput) setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+  }, [combinedOutput]);
+
+  const copyToClipboard = async (text, successMsg = 'Copied!') => {
     if (!text) return;
-    try {
-      await Clipboard.setStringAsync(text);
-      Alert.alert('Success', successMsg);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to copy');
-    }
+    try { await Clipboard.setStringAsync(text); Alert.alert('Success', successMsg); } catch (e) { Alert.alert('Error', 'Failed to copy'); }
   };
 
   const downloadText = (text) => {
-    if (!text) return;
-    if (Platform.OS === 'web') {
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `repo2txt_${activeTab}_output.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      copyToClipboard(text);
-    }
+    if (!text || Platform.OS !== 'web') return;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `repointxt_bundle.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -112,71 +81,48 @@ export default function App() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingHorizontal: isMobile ? spacing.sm : spacing.md,
-            paddingTop: spacing.md,
-            paddingBottom: spacing.xl
-          }
-        ]}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: isMobile ? 12 : 20, paddingTop: 20, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { marginTop: isMobile ? 8 : 12 }]}>
-          <View style={[styles.badge, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.badgeText, { color: colors.primary }]}>v1.0.0</Text>
+        <View style={styles.header}>
+          <Text style={[styles.logo, { color: colors.text, fontSize: isMobile ? 32 : 40 }]}>
+            repoin<Text style={{ color: colors.primary }}>t</Text>xt
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <Icon name="zap" size={14} color={colors.primary} />
+            <Text style={[styles.tagline, { color: colors.textSecondary }]}>Professional AI Context Builder</Text>
           </View>
-          <Text style={[styles.logo, { color: colors.text, fontSize: isMobile ? 28 : 36 }]}>
-            repo<Text style={{ color: colors.primary }}>2</Text>txt
-          </Text>
-          <Text style={[styles.tagline, { color: colors.textSecondary, fontSize: isMobile ? 14 : 15 }]}>
-            Convert codebases into LLM-optimized prompts in seconds
-          </Text>
         </View>
+
         <View style={styles.mainContent}>
           <InputSection
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            githubUrl={githubUrl}
-            setGithubUrl={setGithubUrl}
-            githubToken={githubToken}
-            setGithubToken={setGithubToken}
-            urlHistory={urlHistory}
-            ignorePatterns={ignorePatterns}
-            setIgnorePatterns={setIgnorePatterns}
-            removeComments={removeComments}
-            setRemoveComments={setRemoveComments}
-            removeExtraWhitespace={removeExtraWhitespace}
-            setRemoveExtraWhitespace={setRemoveExtraWhitespace}
-            includeOnlyCode={includeOnlyCode}
-            setIncludeOnlyCode={setIncludeOnlyCode}
-            maxFileSize={maxFileSize}
-            setMaxFileSize={setMaxFileSize}
-            loading={loading}
-            fetchGitHubRepo={fetchGitHubRepo}
-            copyDirectoryStructure={() => copyToClipboard(dirStructure, 'Structure copied!')}
-            pickLocalFiles={pickLocalFiles}
-            pickLocalDirectory={pickLocalDirectory}
-            output={activeOutput}
-            dirStructure={activeTab === 'github' ? dirStructure : ''}
-            isDragging={isDragging}
-            handleDragEnter={handleDragEnter}
-            handleDragLeave={handleDragLeave}
-            handleDragOver={handleDragOver}
-            handleDrop={handleDrop}
-            tokenOptimizationLevel={tokenOptimizationLevel}
-            setTokenOptimizationLevel={setTokenOptimizationLevel}
-            respectGitignore={respectGitignore}
-            setRespectGitignore={setRespectGitignore}
+            activeTab={activeTab} setActiveTab={setActiveTab}
+            githubUrl={githubUrl} setGithubUrl={setGithubUrl}
+            githubToken={githubToken} setGithubToken={setGithubToken}
+            urlHistory={urlHistory} ignorePatterns={ignorePatterns} setIgnorePatterns={setIgnorePatterns}
+            removeComments={removeComments} setRemoveComments={setRemoveComments}
+            removeExtraWhitespace={removeExtraWhitespace} setRemoveExtraWhitespace={setRemoveExtraWhitespace}
+            includeOnlyCode={includeOnlyCode} setIncludeOnlyCode={setIncludeOnlyCode}
+            maxFileSize={maxFileSize} setMaxFileSize={setMaxFileSize}
+            loading={loading} fetchGitHubRepo={fetchGitHubRepo}
+            pickLocalFiles={pickLocalFiles} pickLocalDirectory={pickLocalDirectory}
+            addLocalDirectory={() => pickLocalDirectory(true)}
+            isDragging={isDragging} handleDragEnter={handleDragEnter} handleDragLeave={handleDragLeave}
+            handleDragOver={handleDragOver} handleDrop={handleDrop}
+            tokenOptimizationLevel={tokenOptimizationLevel} setTokenOptimizationLevel={setTokenOptimizationLevel}
+            respectGitignore={respectGitignore} setRespectGitignore={setRespectGitignore}
             isMobile={isMobile}
           />
-          {showSelection && (
-            <View style={styles.selectionWrapper}>
+
+          {sources.length > 0 && (
+            <View style={{ marginTop: 20 }}>
               <SelectionComponent
-                tree={activeTab === 'github' ? treeData?.tree : localTreeData?.tree}
-                selectedFiles={activeTab === 'github' ? githubSelectedFiles : localSelectedFiles}
-                setSelectedFiles={activeTab === 'github' ? setGithubSelectedFiles : setLocalSelectedFiles}
-                onGenerate={activeTab === 'github' ? generateGitHubText : generateLocalText}
+                tree={treeData?.tree}
+                sources={sources}
+                removeSource={removeSource}
+                selectedFiles={selectedFiles}
+                setSelectedFiles={setSelectedFiles}
+                onGenerate={generateText}
                 loading={loading}
                 preamble={preamble}
                 setPreamble={setPreamble}
@@ -184,22 +130,26 @@ export default function App() {
               />
             </View>
           )}
-          {activeOutput ? (
-            <View style={styles.outputContainer}>
+
+          {combinedOutput ? (
+            <View style={{ marginTop: 20 }}>
               <OutputSection
-                output={activeOutput}
-                tokenCount={activeTokenCount}
-                onCopy={() => copyToClipboard(activeOutput)}
-                onDownload={() => downloadText(activeOutput)}
+                output={combinedOutput}
+                tokenCount={githubTokenCount}
+                onCopy={() => copyToClipboard(combinedOutput)}
+                onDownload={() => downloadText(combinedOutput)}
                 isMobile={isMobile}
               />
             </View>
           ) : null}
         </View>
+
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textSecondary, fontSize: isMobile ? 12 : 14 }]}>
-            Built with ❤️ for the AI community • Privacy First • No Data Stored
-          </Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.corbittechnologies.com/')}>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              repointxt • <Text style={{ color: colors.primary, fontWeight: '800' }}>Corbit Technologies</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -207,63 +157,13 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    maxWidth: 800,
-    width: '100%',
-    alignSelf: 'center',
-    paddingBottom: 40,
-  },
-  header: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 20,
-    marginBottom: 8,
-  },
-  badgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  logo: {
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  tagline: {
-    fontWeight: '500',
-    marginTop: 6,
-    textAlign: 'center',
-    maxWidth: 400,
-    opacity: 0.8,
-    lineHeight: 18,
-  },
-  mainContent: {
-    width: '100%',
-  },
-  selectionWrapper: {
-    marginTop: 20,
-  },
-  outputContainer: {
-    marginTop: 20,
-  },
-  footer: {
-    marginTop: 40,
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  footerText: {
-    fontWeight: '500',
-    opacity: 0.5,
-    textAlign: 'center',
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  scrollContent: { maxWidth: 800, width: '100%', alignSelf: 'center' },
+  header: { marginBottom: 32, alignItems: 'center' },
+  logo: { fontWeight: '900', letterSpacing: -1.5 },
+  tagline: { fontSize: 13, fontWeight: '600', opacity: 0.8 },
+  mainContent: { width: '100%' },
+  footer: { marginTop: 40, alignItems: 'center', paddingVertical: 20 },
+  footerText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', opacity: 0.5 },
 });

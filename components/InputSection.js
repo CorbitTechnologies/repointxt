@@ -61,8 +61,9 @@ const InputSection = (props) => {
         {
           backgroundColor: props.isDragging ? colors.surface : colors.card,
           borderRadius: borderRadius.xl,
-          padding: props.isMobile ? spacing.sm : spacing.md,
-          borderColor: props.isDragging ? colors.primary : colors.border,
+          padding: props.isMobile ? spacing.md : spacing.lg,
+          borderColor: props.isDragging ? colors.primary : 'transparent',
+          borderWidth: props.isDragging ? 1 : 0,
           ...shadows.md
         }
       ]}
@@ -102,7 +103,6 @@ const InputSection = (props) => {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    borderWidth: 1,
   },
   tabContent: {
     marginBottom: 24,

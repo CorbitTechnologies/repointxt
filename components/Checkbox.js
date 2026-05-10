@@ -1,8 +1,10 @@
+import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import Icon from './Icon';
 
 const Checkbox = ({ label, checked, onPress }) => {
-  const { colors, borderRadius, spacing } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -14,13 +16,13 @@ const Checkbox = ({ label, checked, onPress }) => {
         <View style={[
           styles.box,
           {
-            borderColor: checked ? colors.primary : colors.border,
-            backgroundColor: checked ? colors.primary : colors.surface,
-            borderRadius: 6,
-            marginRight: spacing.md
+            borderColor: colors.text,
+            backgroundColor: checked ? colors.text : 'transparent',
+            borderRadius: 4,
+            marginRight: 10
           }
         ]}>
-          {checked && <Text style={styles.checkmark}>✓</Text>}
+          {checked && <Icon name="check" size={12} color={isDark ? '#000' : '#fff'} />}
         </View>
         <Text style={[styles.label, { color: colors.text, fontWeight: checked ? '700' : '600' }]}>{label}</Text>
       </TouchableOpacity>
@@ -30,28 +32,23 @@ const Checkbox = ({ label, checked, onPress }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   touchable: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   box: {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkmark: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '900',
-  },
   label: {
-    fontSize: 14,
-    letterSpacing: 0.2,
+    fontSize: 13,
+    letterSpacing: 0.1,
   },
 });
 

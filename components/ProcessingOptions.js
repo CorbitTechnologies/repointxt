@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
+import Icon from './Icon';
 import Checkbox from './Checkbox';
 import BubbleInput from './BubbleInput';
 
@@ -42,20 +43,21 @@ const ProcessingOptions = ({
         activeOpacity={0.7}
       >
         <View style={styles.headerLeft}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            ⚙️ Configuration & Filters
+          <Icon name="settings" size={14} color={colors.textSecondary} />
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary, marginLeft: 8 }]}>
+            Configuration & Filters
           </Text>
         </View>
-        <Text style={[styles.toggleIcon, { color: colors.primary }]}>
-          {isCollapsed ? '▼' : '▲'}
-        </Text>
+        <View style={!isCollapsed && { transform: [{ rotate: '180deg' }] }}>
+          <Icon name="chevron-down" size={14} color={colors.textSecondary} />
+        </View>
       </TouchableOpacity>
 
       {!isCollapsed && (
         <View style={styles.content}>
           <View style={{ marginBottom: spacing.md }}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Token Density Level</Text>
-            <View style={[styles.densityRow, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: 2, flexDirection: isMobile ? 'column' : 'row' }]}>
+            <View style={[styles.densityRow, { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: 4, borderWidth: 1, borderColor: colors.border, flexDirection: isMobile ? 'column' : 'row' }]}>
               {[
                 { label: 'Standard', value: 0 },
                 { label: 'Compact', value: 1 },
@@ -67,7 +69,7 @@ const ProcessingOptions = ({
                     styles.densityOption,
                     tokenOptimizationLevel === opt.value && {
                       backgroundColor: colors.card,
-                      borderRadius: borderRadius.md,
+                      borderRadius: borderRadius.sm,
                       ...shadows.sm
                     }
                   ]}
@@ -77,8 +79,8 @@ const ProcessingOptions = ({
                   <Text style={[
                     styles.densityText,
                     {
-                      color: tokenOptimizationLevel === opt.value ? colors.primary : colors.textSecondary,
-                      fontWeight: tokenOptimizationLevel === opt.value ? '800' : '600'
+                      color: tokenOptimizationLevel === opt.value ? colors.text : colors.textSecondary,
+                      fontWeight: tokenOptimizationLevel === opt.value ? '700' : '500'
                     }
                   ]}>
                     {opt.label}
@@ -86,11 +88,6 @@ const ProcessingOptions = ({
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={[styles.hintText, { color: colors.textSecondary }]}>
-              {tokenOptimizationLevel === 0 ? "Full readable headers (path + delimiter)" :
-                tokenOptimizationLevel === 1 ? "Compact headers (balanced size/readability)" :
-                  "Ultra-compact (f:[path]), maximum token efficiency."}
-            </Text>
           </View>
 
           <View style={styles.optionsGrid}>
@@ -124,7 +121,7 @@ const ProcessingOptions = ({
           <View style={[styles.divider, { backgroundColor: colors.border, opacity: 0.5 }]} />
 
           <View style={[styles.footerInputs, { flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start' }]}>
-            <View style={{ flex: 1, marginBottom: isMobile ? 20 : 0 }}>
+            <View style={{ flex: 1, marginBottom: isMobile ? 12 : 0 }}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Ignore Patterns</Text>
               <BubbleInput
                 patterns={ignorePatterns}
@@ -132,13 +129,13 @@ const ProcessingOptions = ({
                 placeholder="node_modules, .git..."
               />
             </View>
-            <View style={{ width: isMobile ? '100%' : 130 }}>
+            <View style={{ width: isMobile ? '100%' : 100 }}>
               <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 6 }]}>Max Size</Text>
               <View style={[styles.fileSizeRow, {
                 backgroundColor: colors.surface,
                 borderRadius: borderRadius.md,
                 paddingHorizontal: spacing.sm,
-                height: 38
+                height: 32
               }]}>
                 <TextInput
                   style={[styles.smallInput, { color: colors.text }]}
@@ -165,7 +162,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     ...Platform.select({
       web: { cursor: 'pointer' }
     })
@@ -175,14 +172,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  toggleIcon: {
-    fontSize: 14,
-    fontWeight: '900',
+    letterSpacing: 1,
   },
   content: {
     marginTop: 8,
@@ -190,22 +183,22 @@ const styles = StyleSheet.create({
   },
   optionsGrid: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
     flexWrap: 'wrap',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   checkboxGroup: {
     flex: 1,
-    minWidth: 160,
-    gap: 12,
+    minWidth: 140,
+    gap: 10,
   },
   divider: {
     height: 1,
-    marginVertical: 12,
+    marginVertical: 10,
   },
   footerInputs: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     alignItems: 'flex-start',
   },
   fileSizeRow: {
@@ -215,13 +208,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   smLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   smallInput: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    width: 45,
+    width: 40,
     textAlign: 'right',
     padding: 0,
     ...Platform.select({
@@ -229,9 +222,9 @@ const styles = StyleSheet.create({
     })
   },
   label: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800',
-    marginBottom: 10,
+    marginBottom: 8,
     letterSpacing: 0.3,
   },
   densityRow: {
@@ -240,19 +233,13 @@ const styles = StyleSheet.create({
   },
   densityOption: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   densityText: {
-    fontSize: 13,
-  },
-  hintText: {
     fontSize: 12,
-    marginTop: 10,
-    opacity: 0.8,
-    lineHeight: 18,
-  }
+  },
 });
 
 export default ProcessingOptions;
