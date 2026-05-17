@@ -159,7 +159,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
-  scrollContent: { maxWidth: 800, width: '100%', alignSelf: 'center' },
+  scrollContent: { maxWidth: 900, width: '100%', alignSelf: 'center' },
   header: { marginBottom: 32, alignItems: 'center' },
   logo: { fontWeight: '900', letterSpacing: -1.5 },
   tagline: { fontSize: 13, fontWeight: '600', opacity: 0.8 },

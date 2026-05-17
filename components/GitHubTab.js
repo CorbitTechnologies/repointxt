@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   button: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
@@ -130,12 +130,12 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   buttonTextSecondary: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
 });
