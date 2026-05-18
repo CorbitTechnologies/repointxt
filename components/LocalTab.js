@@ -24,7 +24,7 @@ const LocalTab = ({
               borderRadius: borderRadius.md,
               borderWidth: 1,
               borderColor: colors.border,
-              paddingVertical: isMobile ? 12 : 16
+              paddingVertical: isMobile ? 14 : 18
             }
           ]}
           onPress={() => pickLocalFiles()}
@@ -44,7 +44,7 @@ const LocalTab = ({
               borderRadius: borderRadius.md,
               borderWidth: 1,
               borderColor: colors.border,
-              paddingVertical: isMobile ? 12 : 16
+              paddingVertical: isMobile ? 14 : 18
             }
           ]}
           onPress={() => pickLocalDirectory()}
@@ -62,7 +62,7 @@ const LocalTab = ({
             {
               backgroundColor: colors.primary,
               borderRadius: borderRadius.md,
-              paddingVertical: isMobile ? 12 : 16,
+              paddingVertical: isMobile ? 14 : 18,
               ...shadows.sm
             }
           ]}
@@ -86,7 +86,7 @@ const LocalTab = ({
           borderStyle: 'dashed',
           borderRadius: borderRadius.lg,
           marginTop: spacing.md,
-          height: isMobile ? 80 : 100,
+          height: isMobile ? 80 : 120,
         }
       ]}>
         <Icon name="upload" size={24} color={isDragging ? colors.text : colors.textPlaceholder} />
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   buttonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     marginBottom: 2,
   },
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   dragDropArea: {
-    height: 160,
+    height: 180,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

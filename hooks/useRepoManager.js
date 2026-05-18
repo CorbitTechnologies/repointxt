@@ -118,7 +118,8 @@ export const useRepoManager = () => {
         if (!isAdding) { setSources([]); setCombinedOutput(''); }
 
         try {
-            const urlMatch = githubUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+            const cleanUrl = githubUrl.trim().replace(/\/$/, '');
+            const urlMatch = cleanUrl.match(/(?:github\.com\/)?([^\/]+)\/([^\/]+)$/i) || cleanUrl.match(/^([^\/]+)\/([^\/]+)$/i);
             if (!urlMatch) throw new Error('Invalid GitHub URL');
             const [, owner, repo] = urlMatch;
             const cleanRepo = repo.replace(/\.git$/, '');
@@ -182,6 +183,25 @@ export const useRepoManager = () => {
         finally { setLoading(false); }
     }, [ignorePatterns, createTrackedBlobUrl]);
 
+    const pickLocalFiles = useCallback(async (isAdding = false) => {
+        setLoading(true);
+        if (!isAdding) { setSources([]); setCombinedOutput(''); }
+        try {
+            const res = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true });
+            if (res.canceled) return;
+            const treeItems = (res.assets || [res]).filter(f => !shouldIgnore(f.name, ignorePatterns) && !isImageFile(f.name)).map((f, i) => {
+                let fileUrl = f.uri;
+                if (Platform.OS === 'web' && f.file) {
+                    fileUrl = createTrackedBlobUrl(f.file);
+                }
+                return { path: f.name, type: 'blob', size: f.size, url: fileUrl, sha: `loc-file-${Date.now()}-${i}` };
+            });
+            const newSource = { id: `loc-files-${Date.now()}`, type: 'local', name: 'Local Files', tree: treeItems, selectedFiles: treeItems };
+            setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
+        } catch (e) { console.log(e); }
+        finally { setLoading(false); }
+    }, [ignorePatterns, createTrackedBlobUrl]);
+
     const generateText = useCallback(async () => {
         if (sources.length === 0 || selectedFiles.length === 0) return;
         setLoading(true);
@@ -201,8 +221,12 @@ export const useRepoManager = () => {
                         const resp = await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}/contents/${f.path}`, { headers });
                         content = await resp.text();
                     } else {
-                        const resp = await fetch(f.url);
-                        content = await resp.text();
+                        if (Platform.OS !== 'web' && !f.url.startsWith('http')) {
+                            content = await FileSystem.readAsStringAsync(f.url);
+                        } else {
+                            const resp = await fetch(f.url);
+                            content = await resp.text();
+                        }
                     }
                     const opt = optimizeContent(content, f.path, { removeComments, removeExtraWhitespace });
                     parts.push(`---\nFILE: ${s.name}/${f.path}\n\`\`\`\n${opt}\n\`\`\``);
@@ -228,10 +252,60 @@ export const useRepoManager = () => {
         treeData, selectedFiles, setSelectedFiles, githubOutput: combinedOutput, localOutput: combinedOutput,
         githubTokenCount: estimateTokens(combinedOutput), localTokenCount: estimateTokens(combinedOutput),
         showGithubSelection: sources.length > 0, showLocalSelection: sources.length > 0,
-        pickLocalFiles: () => pickLocalDirectory(true),
+        pickLocalFiles,
         handleDragEnter: (e) => { e.preventDefault(); setIsDragging(true); },
         handleDragLeave: () => setIsDragging(false),
         handleDragOver: (e) => e.preventDefault(),
-        handleDrop: (e) => { e.preventDefault(); setIsDragging(false); /* Drop logic ... */ }
+        handleDrop: async (e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            if (!e.dataTransfer || !e.dataTransfer.items) return;
+            setLoading(true);
+            try {
+                const files = [];
+                const processEntry = async (entry, path = '') => {
+                    if (entry.isFile) {
+                        const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+                        const filePath = path ? `${path}/${file.name}` : file.name;
+                        if (!shouldIgnore(filePath, ignorePatterns) && !isImageFile(filePath)) {
+                            files.push({ path: filePath, size: file.size, url: createTrackedBlobUrl(file) });
+                        }
+                    } else if (entry.isDirectory) {
+                        const dirPath = path ? `${path}/${entry.name}` : entry.name;
+                        if (!shouldIgnore(dirPath, ignorePatterns)) {
+                            const reader = entry.createReader();
+                            const readEntries = async () => {
+                                const entries = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+                                if (entries.length > 0) {
+                                    for (const child of entries) {
+                                        await processEntry(child, dirPath);
+                                    }
+                                    await readEntries();
+                                }
+                            };
+                            await readEntries();
+                        }
+                    }
+                };
+
+                for (let i = 0; i < e.dataTransfer.items.length; i++) {
+                    const item = e.dataTransfer.items[i];
+                    if (item.webkitGetAsEntry) {
+                        const entry = item.webkitGetAsEntry();
+                        if (entry) await processEntry(entry);
+                    }
+                }
+
+                if (files.length > 0) {
+                    const treeItems = files.map((f, i) => ({ ...f, type: 'blob', sha: `drop-${Date.now()}-${i}` }));
+                    const newSource = { id: `drop-${Date.now()}`, type: 'local', name: 'Dropped Files', tree: treeItems, selectedFiles: treeItems };
+                    setSources(prev => [...prev, newSource]);
+                }
+            } catch (err) {
+                console.log('Drop error', err);
+            } finally {
+                setLoading(false);
+            }
+        }
     };
 };
