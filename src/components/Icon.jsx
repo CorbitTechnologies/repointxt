@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import icons from '../assets/icons.json';
+import { icons as corbitIconsLibrary } from 'corbit-icons';
 
 const Icon = ({ name, size = 20, color, style }) => {
-  const { colors, isDark } = useTheme();
-  const svgString = icons[name];
+  const { colors } = useTheme();
+  const svgString = icons[name] || corbitIconsLibrary[name];
   
   if (!svgString) {
     console.warn(`Icon "${name}" not found in corbit-icons`);
@@ -24,26 +24,20 @@ const Icon = ({ name, size = 20, color, style }) => {
   // Inject dimensions into the svg tag and ensure it fills the container
   processedSvg = processedSvg.replace(/<svg/i, `<svg width="100%" height="100%"`);
 
-  if (Platform.OS === 'web') {
-    // Standard web approach for SVG injection
-    return (
-      <div 
-        style={{ 
-          width: size, 
-          height: size, 
-          display: 'flex',
-          alignItems: 'center', 
-          justifyContent: 'center',
-          flexShrink: 0,
-          ...style 
-        }}
-        dangerouslySetInnerHTML={{ __html: processedSvg }}
-      />
-    );
-  }
-
-  // Fallback for native
-  return <View style={[{ width: size, height: size, backgroundColor: iconColor, opacity: 0.3 }, style]} />;
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        ...style
+      }}
+      dangerouslySetInnerHTML={{ __html: processedSvg }}
+    />
+  );
 };
 
 export default Icon;

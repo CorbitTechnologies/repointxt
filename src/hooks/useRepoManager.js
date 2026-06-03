@@ -1,7 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Alert, Platform } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as DocumentPicker from 'expo-document-picker';
 import { shouldIgnore, buildDirStructure, estimateTokens, isImageFile, getExtension } from '../utils/fileHelpers';
 import { optimizeContent } from '../utils/contentOptimization';
 import { DEFAULT_IGNORE_PATTERNS } from '../utils/constants';
@@ -37,7 +34,6 @@ export const useRepoManager = () => {
     const githubFileCacheRef = useRef(new Map());
 
     const createTrackedBlobUrl = useCallback((file) => {
-        if (Platform.OS !== 'web') return file.uri;
         const url = URL.createObjectURL(file);
         blobUrlsRef.current.push(url);
         return url;
@@ -49,27 +45,25 @@ export const useRepoManager = () => {
     }, []);
 
     useEffect(() => {
-        if (Platform.OS === 'web') {
-            const savedToken = loadGitHubToken();
-            const savedHistory = loadUrlHistory();
-            const settings = loadAppSettings();
-            if (savedToken) setGithubToken(savedToken);
-            if (savedHistory.length > 0) setUrlHistory(savedHistory);
-            if (settings) {
-                if (settings.ignorePatterns) setIgnorePatterns(settings.ignorePatterns);
-                if (settings.removeComments !== undefined) setRemoveComments(settings.removeComments);
-                if (settings.removeExtraWhitespace !== undefined) setRemoveExtraWhitespace(settings.removeExtraWhitespace);
-                if (settings.maxFileSize) setMaxFileSize(settings.maxFileSize);
-                if (settings.tokenOptimizationLevel !== undefined) setTokenOptimizationLevel(settings.tokenOptimizationLevel);
-            }
+        const savedToken = loadGitHubToken();
+        const savedHistory = loadUrlHistory();
+        const settings = loadAppSettings();
+        if (savedToken) setGithubToken(savedToken);
+        if (savedHistory.length > 0) setUrlHistory(savedHistory);
+        if (settings) {
+            if (settings.ignorePatterns) setIgnorePatterns(settings.ignorePatterns);
+            if (settings.removeComments !== undefined) setRemoveComments(settings.removeComments);
+            if (settings.removeExtraWhitespace !== undefined) setRemoveExtraWhitespace(settings.removeExtraWhitespace);
+            if (settings.maxFileSize) setMaxFileSize(settings.maxFileSize);
+            if (settings.tokenOptimizationLevel !== undefined) setTokenOptimizationLevel(settings.tokenOptimizationLevel);
         }
         return cleanupBlobUrls;
     }, []);
 
     useEffect(() => {
-        if (Platform.OS !== 'web') return;
         saveAppSettings({ ignorePatterns, removeComments, removeExtraWhitespace, maxFileSize, tokenOptimizationLevel });
-    }, [ignorePatterns, removeComments, removeExtraWhitespace, maxFileSize, tokenOptimizationLevel]);
+        saveGitHubToken(githubToken);
+    }, [ignorePatterns, removeComments, removeExtraWhitespace, maxFileSize, tokenOptimizationLevel, githubToken]);
 
     const treeData = useMemo(() => {
         const allItems = [];
@@ -113,7 +107,7 @@ export const useRepoManager = () => {
     }, []);
 
     const fetchGitHubRepo = useCallback(async (isAdding = false) => {
-        if (!githubUrl.trim()) return Alert.alert('Error', 'Enter a GitHub URL');
+        if (!githubUrl.trim()) return window.alert('Enter a GitHub URL');
         setLoading(true);
         if (!isAdding) { setSources([]); setCombinedOutput(''); }
 
@@ -146,8 +140,8 @@ export const useRepoManager = () => {
 
             setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
             setGithubUrl('');
-            if (Platform.OS === 'web') { saveUrlToHistory(githubUrl); setUrlHistory(loadUrlHistory()); }
-        } catch (e) { Alert.alert('Error', e.message); }
+            saveUrlToHistory(githubUrl); setUrlHistory(loadUrlHistory());
+        } catch (e) { window.alert(e.message); }
         finally { setLoading(false); }
     }, [githubUrl, githubToken, ignorePatterns]);
 
@@ -155,7 +149,7 @@ export const useRepoManager = () => {
         setLoading(true);
         if (!isAdding) { setSources([]); setCombinedOutput(''); }
         try {
-            if (Platform.OS === 'web' && window.showDirectoryPicker) {
+            if (window.showDirectoryPicker) {
                 const handle = await window.showDirectoryPicker();
                 const files = [];
                 const read = async (h, p = '') => {
@@ -173,33 +167,30 @@ export const useRepoManager = () => {
                 const newSource = { id: `loc-${Date.now()}`, type: 'local', name: handle.name, tree: treeItems, selectedFiles: treeItems };
                 setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
             } else {
-                const res = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true });
-                if (res.canceled) return;
-                const treeItems = (res.assets || [res]).filter(f => !shouldIgnore(f.name, ignorePatterns)).map((f, i) => ({ path: f.name, type: 'blob', size: f.size, url: f.uri, sha: `loc-${i}` }));
-                const newSource = { id: `loc-${Date.now()}`, type: 'local', name: 'Local Upload', tree: treeItems, selectedFiles: treeItems };
-                setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
+                window.alert("Directory picking is not supported in your browser.");
             }
         } catch (e) { console.log(e); }
         finally { setLoading(false); }
     }, [ignorePatterns, createTrackedBlobUrl]);
 
     const pickLocalFiles = useCallback(async (isAdding = false) => {
-        setLoading(true);
-        if (!isAdding) { setSources([]); setCombinedOutput(''); }
-        try {
-            const res = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true });
-            if (res.canceled) return;
-            const treeItems = (res.assets || [res]).filter(f => !shouldIgnore(f.name, ignorePatterns) && !isImageFile(f.name)).map((f, i) => {
-                let fileUrl = f.uri;
-                if (Platform.OS === 'web' && f.file) {
-                    fileUrl = createTrackedBlobUrl(f.file);
-                }
-                return { path: f.name, type: 'blob', size: f.size, url: fileUrl, sha: `loc-file-${Date.now()}-${i}` };
-            });
-            const newSource = { id: `loc-files-${Date.now()}`, type: 'local', name: 'Local Files', tree: treeItems, selectedFiles: treeItems };
-            setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
-        } catch (e) { console.log(e); }
-        finally { setLoading(false); }
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.onchange = async (e) => {
+            setLoading(true);
+            if (!isAdding) { setSources([]); setCombinedOutput(''); }
+            try {
+                const selected = Array.from(e.target.files);
+                const treeItems = selected.filter(f => !shouldIgnore(f.name, ignorePatterns) && !isImageFile(f.name)).map((f, i) => {
+                    return { path: f.name, type: 'blob', size: f.size, url: createTrackedBlobUrl(f), sha: `loc-file-${Date.now()}-${i}` };
+                });
+                const newSource = { id: `loc-files-${Date.now()}`, type: 'local', name: 'Local Files', tree: treeItems, selectedFiles: treeItems };
+                setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
+            } catch (err) { console.log(err); }
+            finally { setLoading(false); }
+        };
+        input.click();
     }, [ignorePatterns, createTrackedBlobUrl]);
 
     const generateText = useCallback(async () => {
@@ -221,19 +212,15 @@ export const useRepoManager = () => {
                         const resp = await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}/contents/${f.path}`, { headers });
                         content = await resp.text();
                     } else {
-                        if (Platform.OS !== 'web' && !f.url.startsWith('http')) {
-                            content = await FileSystem.readAsStringAsync(f.url);
-                        } else {
-                            const resp = await fetch(f.url);
-                            content = await resp.text();
-                        }
+                        const resp = await fetch(f.url);
+                        content = await resp.text();
                     }
                     const opt = optimizeContent(content, f.path, { removeComments, removeExtraWhitespace });
                     parts.push(`---\nFILE: ${s.name}/${f.path}\n\`\`\`\n${opt}\n\`\`\``);
                 }
             }
             setCombinedOutput(parts.join('\n'));
-        } catch (e) { Alert.alert('Error', 'Generation failed'); }
+        } catch (e) { window.alert('Generation failed'); }
         finally { setLoading(false); }
     }, [sources, selectedFiles, preamble, removeComments, removeExtraWhitespace, githubToken]);
 
@@ -248,7 +235,6 @@ export const useRepoManager = () => {
         includeOnlyCode, setIncludeOnlyCode, maxFileSize, setMaxFileSize, activeTab, setActiveTab,
         tokenOptimizationLevel, setTokenOptimizationLevel, respectGitignore, setRespectGitignore,
         fetchGitHubRepo, pickLocalDirectory, generateText, removeSource,
-        // Legacy props for compatibility
         treeData, selectedFiles, setSelectedFiles, githubOutput: combinedOutput, localOutput: combinedOutput,
         githubTokenCount: estimateTokens(combinedOutput), localTokenCount: estimateTokens(combinedOutput),
         showGithubSelection: sources.length > 0, showLocalSelection: sources.length > 0,

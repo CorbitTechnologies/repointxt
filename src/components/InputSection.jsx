@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, memo } from 'react';
-import { StyleSheet, Text, View, Platform } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import TabSwitcher from './TabSwitcher';
 import ProcessingOptions from './ProcessingOptions';
@@ -10,9 +9,8 @@ const InputSection = (props) => {
   const { activeTab, colors, borderRadius, spacing, shadows } = { ...props, ...useTheme() };
   const containerRef = useRef(null);
 
-  // Attach native drag/drop event listeners for web platform
   useEffect(() => {
-    if (Platform.OS !== 'web' || !containerRef.current) return;
+    if (!containerRef.current) return;
 
     const element = containerRef.current;
 
@@ -54,31 +52,31 @@ const InputSection = (props) => {
   }, [activeTab, props.handleDragEnter, props.handleDragOver, props.handleDragLeave, props.handleDrop]);
 
   return (
-    <View
+    <div
       ref={containerRef}
-      style={[
-        styles.container,
-        {
-          backgroundColor: props.isDragging ? colors.surface : colors.card,
-          borderRadius: borderRadius.xl,
-          padding: props.isMobile ? spacing.md : spacing.lg,
-          borderColor: props.isDragging ? colors.primary : 'transparent',
-          borderWidth: props.isDragging ? 1 : 0,
-          ...shadows.md
-        }
-      ]}
+      style={{
+        width: '100%',
+        backgroundColor: props.isDragging ? colors.surface : colors.card,
+        borderRadius: borderRadius.xl,
+        padding: props.isMobile ? 12 : 24,
+        borderColor: props.isDragging ? colors.primary : 'transparent',
+        borderWidth: props.isDragging ? 1 : 0,
+        borderStyle: 'solid',
+        boxSizing: 'border-box',
+        ...shadows.md
+      }}
     >
       <TabSwitcher activeTab={activeTab} setActiveTab={props.setActiveTab} />
 
-      <View style={styles.tabContent}>
+      <div style={{ marginBottom: 24 }}>
         {activeTab === 'github' ? (
           <GitHubTab {...props} />
         ) : (
           <LocalTab {...props} />
         )}
-      </View>
+      </div>
 
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+      <div style={{ height: 1, margin: '16px 0', width: '100%', backgroundColor: colors.border }} />
 
       <ProcessingOptions
         removeComments={props.removeComments}
@@ -96,22 +94,8 @@ const InputSection = (props) => {
         respectGitignore={props.respectGitignore}
         setRespectGitignore={props.setRespectGitignore}
       />
-    </View>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  tabContent: {
-    marginBottom: 24,
-  },
-  divider: {
-    height: 1,
-    marginVertical: 16,
-    width: '100%',
-  },
-});
 
 export default memo(InputSection);

@@ -1,5 +1,4 @@
-import { useColorScheme, Platform } from 'react-native';
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const palette = {
     // Premium Developer Theme
@@ -33,8 +32,16 @@ const palette = {
 };
 
 export const useTheme = () => {
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === 'dark';
+    const [isDark, setIsDark] = useState(
+        typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false
+    );
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handler = (e) => setIsDark(e.matches);
+        mediaQuery.addEventListener('change', handler);
+        return () => mediaQuery.removeEventListener('change', handler);
+    }, []);
 
     return useMemo(() => {
         return {
@@ -76,22 +83,11 @@ export const useTheme = () => {
                 xl: 12,
                 full: 9999,
             },
-            shadows: Platform.select({
-                web: {
-                    sm: { boxShadow: isDark ? '0 0 0 1px #333' : '0 1px 2px rgba(0,0,0,0.05)' },
-                    md: { boxShadow: isDark ? '0 0 0 1px #333, 0 4px 6px rgba(0,0,0,0.4)' : '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' },
-                    lg: { boxShadow: isDark ? '0 0 0 1px #333, 0 10px 15px rgba(0,0,0,0.5)' : '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)' },
-                },
-                default: isDark ? {
-                    sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.5, shadowRadius: 2, elevation: 2 },
-                    md: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.6, shadowRadius: 8, elevation: 5 },
-                    lg: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.8, shadowRadius: 15, elevation: 10 },
-                } : {
-                    sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
-                    md: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
-                    lg: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 15, elevation: 10 },
-                }
-            })
+            shadows: {
+                sm: { boxShadow: isDark ? '0 0 0 1px #333' : '0 1px 2px rgba(0,0,0,0.05)' },
+                md: { boxShadow: isDark ? '0 0 0 1px #333, 0 4px 6px rgba(0,0,0,0.4)' : '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' },
+                lg: { boxShadow: isDark ? '0 0 0 1px #333, 0 10px 15px rgba(0,0,0,0.5)' : '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)' },
+            }
         };
     }, [isDark]);
 };
