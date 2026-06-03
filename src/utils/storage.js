@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 const STORAGE_KEYS = {
     GITHUB_TOKEN: 'repointxt_github_token',
     URL_HISTORY: 'repointxt_url_history',
@@ -14,9 +12,6 @@ const LEGACY_STORAGE_KEYS = {
 
 // Max number of URLs to keep in history
 const MAX_HISTORY = 10;
-
-// Check if we're in a browser environment
-const isWeb = Platform.OS === 'web';
 
 // Simple obfuscation for token (not encryption, but better than plain text)
 const obfuscate = (text) => {
@@ -39,7 +34,6 @@ const deobfuscate = (text) => {
 
 // Save GitHub token
 export const saveGitHubToken = (token) => {
-    if (!isWeb) return;
     try {
         const obfuscated = obfuscate(token);
         localStorage.setItem(STORAGE_KEYS.GITHUB_TOKEN, obfuscated);
@@ -50,7 +44,6 @@ export const saveGitHubToken = (token) => {
 
 // Load GitHub token
 export const loadGitHubToken = () => {
-    if (!isWeb) return '';
     try {
         const obfuscated = localStorage.getItem(STORAGE_KEYS.GITHUB_TOKEN)
             || localStorage.getItem(LEGACY_STORAGE_KEYS.GITHUB_TOKEN);
@@ -63,7 +56,6 @@ export const loadGitHubToken = () => {
 
 // Clear GitHub token
 export const clearGitHubToken = () => {
-    if (!isWeb) return;
     try {
         localStorage.removeItem(STORAGE_KEYS.GITHUB_TOKEN);
     } catch (error) {
@@ -73,7 +65,7 @@ export const clearGitHubToken = () => {
 
 // Save URL to history
 export const saveUrlToHistory = (url) => {
-    if (!isWeb || !url) return;
+    if (!url) return;
     try {
         const history = loadUrlHistory();
 
@@ -94,7 +86,6 @@ export const saveUrlToHistory = (url) => {
 
 // Load URL history
 export const loadUrlHistory = () => {
-    if (!isWeb) return [];
     try {
         const history = localStorage.getItem(STORAGE_KEYS.URL_HISTORY)
             || localStorage.getItem(LEGACY_STORAGE_KEYS.URL_HISTORY);
@@ -107,7 +98,6 @@ export const loadUrlHistory = () => {
 
 // Clear URL history
 export const clearUrlHistory = () => {
-    if (!isWeb) return;
     try {
         localStorage.removeItem(STORAGE_KEYS.URL_HISTORY);
     } catch (error) {
@@ -117,7 +107,7 @@ export const clearUrlHistory = () => {
 
 // Save general app settings
 export const saveAppSettings = (settings) => {
-    if (!isWeb || !settings) return;
+    if (!settings) return;
     try {
         localStorage.setItem(STORAGE_KEYS.APP_SETTINGS, JSON.stringify(settings));
     } catch (error) {
@@ -127,7 +117,6 @@ export const saveAppSettings = (settings) => {
 
 // Load general app settings
 export const loadAppSettings = () => {
-    if (!isWeb) return null;
     try {
         const settings = localStorage.getItem(STORAGE_KEYS.APP_SETTINGS)
             || localStorage.getItem(LEGACY_STORAGE_KEYS.APP_SETTINGS);

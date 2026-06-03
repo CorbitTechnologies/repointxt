@@ -1,30 +1,20 @@
 {
   "name": "repointxt",
   "version": "1.0.0",
-  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "web": "expo start --web",
-    "build": "expo export --platform web",
-    "eject": "expo eject"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~6.1.2",
-    "corbit-icons": "file:../corbit-icons/packages/core",
+    "corbit-icons": "^1.1.0",
     "corbit-mono": "^1.0.0",
-    "expo": "^49.0.23",
-    "expo-clipboard": "~4.3.1",
-    "expo-document-picker": "~11.5.4",
-    "expo-file-system": "~15.4.5",
-    "expo-status-bar": "~1.6.0",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-native": "0.72.10",
-    "react-native-web": "~0.19.6"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.0"
   },
   "private": true
 }
