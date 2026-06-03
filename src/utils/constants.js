@@ -61,3 +61,11 @@ export const DEFAULT_IGNORE_PATTERNS = [
     'jsconfig.json',
     '.env*',
 ];
+
+export const DEFAULT_UNSELECT_PATTERNS = [
+    '.dart',
+    '.js',
+    '.ts',
+    '.jsx',
+    '.tsx',
+];

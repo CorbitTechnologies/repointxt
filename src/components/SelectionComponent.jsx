@@ -192,7 +192,7 @@ const SelectionComponent = ({
             <Icon name="filter" size={14} color={colors.textSecondary} />
             <input
               style={{ flex: 1, marginLeft: 8, fontSize: 13, color: colors.text, background: 'transparent', border: 'none', outline: 'none' }}
-              placeholder="Filter files..."
+              placeholder="Filter by file types (.js, .ts)..."
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
             />
@@ -200,6 +200,17 @@ const SelectionComponent = ({
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => {
+            setSelectedFiles(tree.filter(f => f.type === 'blob'));
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Select All</span></div>
+          </button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => {
+            setSelectedFiles([]);
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>Select None</span></div>
+          </button>
+
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => {
             const allDirs = new Set(['']);
             tree.forEach(f => {
