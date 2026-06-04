@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { shouldIgnore, buildDirStructure, estimateTokens, isImageFile, getExtension } from '../utils/fileHelpers';
 import { optimizeContent } from '../utils/contentOptimization';
-import { DEFAULT_IGNORE_PATTERNS } from '../utils/constants';
+import { DEFAULT_IGNORE_PATTERNS, DEFAULT_UNSELECT_PATTERNS } from '../utils/constants';
 import { extractTextFromPdf } from '../utils/pdfProcessor';
 import { saveGitHubToken, loadGitHubToken, saveUrlToHistory, loadUrlHistory, saveAppSettings, loadAppSettings } from '../utils/storage';
 import { parseGitignore } from '../utils/gitignoreParser';
@@ -135,7 +135,13 @@ export const useRepoManager = () => {
                 name: cleanRepo,
                 owner, repo: cleanRepo, branch,
                 tree: treeDataResult.tree.filter(i => i.type === 'blob'),
-                selectedFiles: treeDataResult.tree.filter(i => i.type === 'blob' && !shouldIgnore(i.path, ignorePatterns))
+                selectedFiles: treeDataResult.tree.filter(i => {
+                    if (i.type !== 'blob' || shouldIgnore(i.path, ignorePatterns)) return false;
+                    for (const unselectPattern of DEFAULT_UNSELECT_PATTERNS) {
+                        if (i.path.endsWith(unselectPattern)) return false;
+                    }
+                    return true;
+                })
             };
 
             setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
@@ -164,7 +170,12 @@ export const useRepoManager = () => {
                 };
                 await read(handle);
                 const treeItems = files.map((f, i) => ({ ...f, type: 'blob', sha: `loc-${Date.now()}-${i}` }));
-                const newSource = { id: `loc-${Date.now()}`, type: 'local', name: handle.name, tree: treeItems, selectedFiles: treeItems };
+                const newSource = { id: `loc-${Date.now()}`, type: 'local', name: handle.name, tree: treeItems, selectedFiles: treeItems.filter(i => {
+                    for (const unselectPattern of DEFAULT_UNSELECT_PATTERNS) {
+                        if (i.path.endsWith(unselectPattern)) return false;
+                    }
+                    return true;
+                }) };
                 setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
             } else {
                 window.alert("Directory picking is not supported in your browser.");
@@ -185,7 +196,12 @@ export const useRepoManager = () => {
                 const treeItems = selected.filter(f => !shouldIgnore(f.name, ignorePatterns) && !isImageFile(f.name)).map((f, i) => {
                     return { path: f.name, type: 'blob', size: f.size, url: createTrackedBlobUrl(f), sha: `loc-file-${Date.now()}-${i}` };
                 });
-                const newSource = { id: `loc-files-${Date.now()}`, type: 'local', name: 'Local Files', tree: treeItems, selectedFiles: treeItems };
+                const newSource = { id: `loc-files-${Date.now()}`, type: 'local', name: 'Local Files', tree: treeItems, selectedFiles: treeItems.filter(i => {
+                    for (const unselectPattern of DEFAULT_UNSELECT_PATTERNS) {
+                        if (i.path.endsWith(unselectPattern)) return false;
+                    }
+                    return true;
+                }) };
                 setSources(prev => isAdding ? [...prev, newSource] : [newSource]);
             } catch (err) { console.log(err); }
             finally { setLoading(false); }
@@ -284,7 +300,12 @@ export const useRepoManager = () => {
 
                 if (files.length > 0) {
                     const treeItems = files.map((f, i) => ({ ...f, type: 'blob', sha: `drop-${Date.now()}-${i}` }));
-                    const newSource = { id: `drop-${Date.now()}`, type: 'local', name: 'Dropped Files', tree: treeItems, selectedFiles: treeItems };
+                    const newSource = { id: `drop-${Date.now()}`, type: 'local', name: 'Dropped Files', tree: treeItems, selectedFiles: treeItems.filter(i => {
+                        for (const unselectPattern of DEFAULT_UNSELECT_PATTERNS) {
+                            if (i.path.endsWith(unselectPattern)) return false;
+                        }
+                        return true;
+                    }) };
                     setSources(prev => [...prev, newSource]);
                 }
             } catch (err) {
