@@ -104,7 +104,8 @@ const LocalTab = ({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 12,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          boxSizing: 'border-box'
         }}
       >
         <Icon name="upload" size={24} color={isDragging ? colors.text : colors.textPlaceholder} />

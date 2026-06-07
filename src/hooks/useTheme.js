@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 
 const palette = {
-    primary: '#007AFF', // Electric Blue
-    primaryLight: '#5AC8FA',
-    primaryDark: '#0056B3',
-    secondary: '#32CD32', // Lime Green
+    primary: '#10a37f', // ChatGPT Green
+    primaryLight: '#34d399',
+    primaryDark: '#0d7d62',
+    secondary: '#10a37f',
 
-    success: '#32CD32',
-    warning: '#FF9500',
-    error: '#FF3B30',
+    success: '#10a37f',
+    warning: '#f59e0b',
+    error: '#ef4444',
 
     // Light Theme (ChatGPT inspired)
     white: '#FFFFFF',
@@ -24,10 +24,10 @@ const palette = {
     gray900: '#202123',
 
     // Dark Theme (ChatGPT inspired)
-    darkBg: '#202123',
-    darkCard: '#343541',
-    darkSurface: '#40414F',
-    darkBorder: '#565869',
+    darkBg: '#09090b', // zinc-950
+    darkCard: '#18181b', // zinc-900
+    darkSurface: '#27272a', // zinc-800
+    darkBorder: '#3f3f46', // zinc-700
 };
 
 export const useTheme = () => {
@@ -46,7 +46,7 @@ export const useTheme = () => {
         return {
             isDark,
             colors: {
-                primary: palette.primary,
+                primary: isDark ? '#10a37f' : '#0d7d62',
                 primaryLight: palette.primaryLight,
                 primaryDark: palette.primaryDark,
                 secondary: palette.secondary,
@@ -56,16 +56,16 @@ export const useTheme = () => {
 
                 background: isDark ? palette.darkBg : palette.white,
                 card: isDark ? palette.darkCard : palette.white,
-                surface: isDark ? palette.darkSurface : palette.gray50,
-                border: isDark ? palette.darkBorder : palette.gray200,
+                surface: isDark ? palette.darkSurface : palette.gray100,
+                border: isDark ? '#52525b' : palette.gray300, // zinc-600 / gray-300 for clearer borders
 
-                text: isDark ? '#ECECF1' : '#202123',
-                textSecondary: isDark ? '#C5C5D2' : '#565869',
-                textPlaceholder: isDark ? '#8E8EA0' : '#8E8EA0',
+                text: isDark ? '#ffffff' : '#18181b', // pure white on dark / zinc-900 on light
+                textSecondary: isDark ? '#e4e4e7' : '#52525b', // zinc-200 on dark / zinc-600 on light
+                textPlaceholder: isDark ? '#a1a1aa' : '#71717a', // zinc-400 on dark / zinc-500 on light
 
-                icon: isDark ? '#C5C5D2' : '#565869',
+                icon: isDark ? '#e4e4e7' : '#52525b',
 
-                primaryGradient: isDark ? 'linear-gradient(135deg, #007AFF 0%, #32CD32 100%)' : 'linear-gradient(135deg, #007AFF 0%, #32CD32 100%)',
+                primaryGradient: isDark ? 'linear-gradient(135deg, #10a37f 0%, #0d7d62 100%)' : 'linear-gradient(135deg, #10a37f 0%, #0d7d62 100%)',
             },
             spacing: {
                 xs: 4,

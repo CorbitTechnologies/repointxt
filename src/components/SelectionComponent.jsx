@@ -3,18 +3,6 @@ import { useTheme } from '../hooks/useTheme';
 import { getExtension } from '../utils/fileHelpers';
 import Icon from './Icon';
 
-const getFileIcon = (filename) => {
-  const ext = getExtension(filename);
-  switch (ext) {
-    case 'js': case 'jsx': case 'ts': case 'tsx': return '#F7DF1E';
-    case 'py': return '#3776AB';
-    case 'html': case 'css': return '#E34F26';
-    case 'json': return '#000000';
-    case 'md': return '#083fa1';
-    default: return '#888888';
-  }
-};
-
 const TreeItem = memo(({ item, level, isExpanded, onToggle, isSelected, onSelect, isMobile }) => {
   const { colors } = useTheme();
   const isFile = item.type === 'blob';
@@ -60,9 +48,9 @@ const SelectionComponent = ({
   tree, sources, selectedFiles, setSelectedFiles,
   onGenerate, loading, removeSource, preamble, setPreamble, isMobile
 }) => {
-  const { colors, borderRadius, shadows, isDark } = useTheme();
+  const { colors, borderRadius, shadows } = useTheme();
   const [expandedDirs, setExpandedDirs] = useState(new Set(['']));
-  const [filterText, setFilterText] = useState('');
+  const [selectedExtensions, setSelectedExtensions] = useState(new Set());
 
   const toggleDir = useCallback((path) => {
     setExpandedDirs(prev => {
@@ -81,7 +69,10 @@ const SelectionComponent = ({
         return [...prev, item];
       });
     } else {
-      const allChildren = tree.filter(f => f.type === 'blob' && f.path.startsWith(item.path + '/') && f.sourceId === item.sourceId);
+      // Folder select: select/deselect all descendant files
+      const prefix = item.path + '/';
+      const allChildren = tree.filter(f => f.type === 'blob' && f.path.startsWith(prefix) && f.sourceId === item.sourceId);
+      
       setSelectedFiles(prev => {
         const selectedPaths = new Set(prev.map(f => `${f.sourceId}:${f.path}`));
         const allSelected = allChildren.every(c => selectedPaths.has(`${c.sourceId}:${c.path}`));
@@ -96,32 +87,81 @@ const SelectionComponent = ({
     }
   }, [tree, setSelectedFiles]);
 
-  const treeStructure = useMemo(() => {
+  const fileExtensions = useMemo(() => {
+    if (!tree) return [];
+    const exts = new Set();
+    tree.forEach(item => {
+      if (item.type === 'blob') {
+        const ext = getExtension(item.name || item.path);
+        if (ext && ext !== 'no extension') {
+          exts.add(ext.toLowerCase());
+        }
+      }
+    });
+    return Array.from(exts).sort();
+  }, [tree]);
+
+  const toggleExtension = useCallback((ext) => {
+    setSelectedExtensions(prev => {
+      const next = new Set(prev);
+      if (next.has(ext)) {
+        next.delete(ext);
+      } else {
+        next.add(ext);
+      }
+      return next;
+    });
+  }, []);
+
+  // Construct complete folder-based tree structure dynamically from flat file list
+  const hierarchy = useMemo(() => {
     if (!tree) return [];
 
-    let filtered = tree;
-    if (filterText) {
-      const lowerFilter = filterText.toLowerCase();
-      filtered = tree.filter(f => f.path.toLowerCase().includes(lowerFilter));
-      const parents = new Set();
-      filtered.forEach(f => {
-        let p = f.path;
-        while (p.includes('/')) {
-          p = p.substring(0, p.lastIndexOf('/'));
-          parents.add(`${f.sourceId}:${p}`);
-        }
+    let filteredFiles = tree.filter(f => f.type === 'blob');
+    if (selectedExtensions.size > 0) {
+      filteredFiles = filteredFiles.filter(f => {
+        const ext = getExtension(f.name || f.path);
+        return selectedExtensions.has(ext.toLowerCase());
       });
-      filtered = tree.filter(f => filtered.includes(f) || (f.type !== 'blob' && parents.has(`${f.sourceId}:${f.path}`)));
     }
 
-    const structure = [];
-    const pathMap = new Map();
+    const itemsMap = new Map();
 
-    const sortedTree = [...filtered].sort((a, b) => {
+    filteredFiles.forEach(file => {
+      const fileKey = `${file.sourceId}:${file.path}`;
+      itemsMap.set(fileKey, {
+        ...file,
+        type: 'blob',
+        name: file.path.split('/').pop(),
+        level: file.path.split('/').length - 1
+      });
+
+      const parts = file.path.split('/');
+      for (let i = 1; i < parts.length; i++) {
+        const folderPath = parts.slice(0, i).join('/');
+        const folderKey = `${file.sourceId}:${folderPath}`;
+        if (!itemsMap.has(folderKey)) {
+          itemsMap.set(folderKey, {
+            sourceId: file.sourceId,
+            path: folderPath,
+            name: parts[i - 1],
+            type: 'tree',
+            level: i - 1
+          });
+        }
+      }
+    });
+
+    const allItems = Array.from(itemsMap.values());
+
+    allItems.sort((a, b) => {
       if (a.sourceId !== b.sourceId) return a.sourceId.localeCompare(b.sourceId);
+      
       const aParts = a.path.split('/');
       const bParts = b.path.split('/');
-      for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+      const minLength = Math.min(aParts.length, bParts.length);
+
+      for (let i = 0; i < minLength; i++) {
         if (aParts[i] !== bParts[i]) {
           const aIsDir = i < aParts.length - 1 || a.type === 'tree';
           const bIsDir = i < bParts.length - 1 || b.type === 'tree';
@@ -132,26 +172,24 @@ const SelectionComponent = ({
       return aParts.length - bParts.length;
     });
 
-    sortedTree.forEach(item => {
+    return allItems;
+  }, [tree, selectedExtensions]);
+
+  const treeStructure = useMemo(() => {
+    return hierarchy.filter(item => {
       const parts = item.path.split('/');
-      const name = parts[parts.length - 1];
+      if (parts.length === 1) return true;
       const parentPath = parts.slice(0, -1).join('/');
-
-      const node = { ...item, name, level: parts.length - 1 };
-
-      if (filterText) {
-        structure.push(node);
-      } else {
-        if (parentPath === '') {
-          structure.push(node);
-        } else if (expandedDirs.has(`${item.sourceId}:${parentPath}`)) {
-          structure.push(node);
-        }
-      }
+      return expandedDirs.has(`${item.sourceId}:${parentPath}`);
     });
+  }, [hierarchy, expandedDirs]);
 
-    return structure;
-  }, [tree, expandedDirs, filterText]);
+  const isFolderSelected = useCallback((item) => {
+    const prefix = item.path + '/';
+    const allChildren = tree.filter(f => f.type === 'blob' && f.path.startsWith(prefix) && f.sourceId === item.sourceId);
+    if (allChildren.length === 0) return false;
+    return allChildren.every(c => selectedFiles.some(sf => sf.path === c.path && sf.sourceId === c.sourceId));
+  }, [tree, selectedFiles]);
 
   const selectedCount = selectedFiles?.length || 0;
   const totalCount = tree?.filter(i => i.type === 'blob').length || 0;
@@ -160,97 +198,199 @@ const SelectionComponent = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {sources.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {sources.map(source => (
-            <div key={source.id} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, padding: '10px 16px', borderRadius: 8, borderWidth: 1, borderColor: colors.border, borderStyle: 'solid' }}>
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Icon name={source.type === 'github' ? 'github' : 'folder'} size={14} color={colors.primary} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{source.name}</span>
-                  <span style={{ fontSize: 11, color: colors.textSecondary }}>{source.selectedFiles.length} files selected</span>
-                </div>
+      <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: colors.card, borderRadius: 12, padding: isMobile ? 12 : 20, ...shadows.lg, boxSizing: 'border-box', border: `1px solid ${colors.border}` }}>
+        
+        {/* Header section with Selection and All / None buttons */}
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Icon name="menu" size={16} color={colors.text} />
+              <span style={{ fontSize: 18, fontWeight: '800', color: colors.text }}>Selection</span>
+            </div>
+            <span style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>Manage added codebases</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+            <button 
+              style={{
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 6,
+                padding: '4px 12px',
+                color: colors.text,
+                fontSize: 12,
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+              onClick={() => setSelectedFiles(tree.filter(f => f.type === 'blob'))}
+            >
+              All
+            </button>
+            <button 
+              style={{
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 6,
+                padding: '4px 12px',
+                color: colors.text,
+                fontSize: 12,
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+              onClick={() => setSelectedFiles([])}
+            >
+              None
+            </button>
+          </div>
+        </div>
+
+        {/* Codebases / Sources tags list */}
+        {sources.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {sources.map(source => (
+              <div 
+                key={source.id} 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  gap: 8, 
+                  backgroundColor: colors.surface, 
+                  padding: '6px 12px', 
+                  borderRadius: 6, 
+                  border: `1px solid ${colors.border}` 
+                }}
+              >
+                <Icon name={source.type === 'github' ? 'github' : 'folder'} size={13} color={colors.primary} />
+                <span style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>{source.name}</span>
+                <button 
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    padding: 0, 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: 4
+                  }} 
+                  onClick={() => removeSource(source.id)}
+                >
+                  <Icon name="trash" size={13} color={colors.error} />
+                </button>
               </div>
-              <button style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => removeSource(source.id)}>
-                <Icon name="trash" size={14} color={colors.error} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: colors.card, borderRadius: 12, padding: isMobile ? 12 : 20, ...shadows.lg, boxSizing: 'border-box' }}>
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: 16, gap: 12 }}>
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>Selected Files</span>
-            <div style={{ backgroundColor: colors.primary + '15', padding: '2px 8px', borderRadius: 12 }}>
-              <span style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>{selectedCount} / {totalCount}</span>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 6, padding: '6px 12px', borderWidth: 1, borderColor: colors.border, borderStyle: 'solid', width: isMobile ? '100%' : 200, boxSizing: 'border-box' }}>
-            <Icon name="filter" size={14} color={colors.textSecondary} />
-            <input
-              style={{ flex: 1, marginLeft: 8, fontSize: 13, color: colors.text, background: 'transparent', border: 'none', outline: 'none' }}
-              placeholder="Filter by file types (.js, .ts)..."
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginBottom: 12 }}>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => {
-            setSelectedFiles(tree.filter(f => f.type === 'blob'));
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Select All</span></div>
-          </button>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => {
-            setSelectedFiles([]);
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}><span style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>Select None</span></div>
-          </button>
-
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => {
-            const allDirs = new Set(['']);
-            tree.forEach(f => {
-              let p = f.path;
-              while (p.includes('/')) {
-                p = p.substring(0, p.lastIndexOf('/'));
-                allDirs.add(`${f.sourceId}:${p}`);
-              }
-            });
-            setExpandedDirs(allDirs);
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="plus" size={14} color={colors.text} /><span style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Expand All</span></div>
-          </button>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => setExpandedDirs(new Set(['']))}>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}><Icon name="minus" size={14} color={colors.textSecondary} /><span style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>Collapse All</span></div>
-          </button>
-        </div>
-
-        <div style={{ backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, borderStyle: 'solid', overflow: 'hidden' }}>
-          <div style={{ maxHeight: 400, overflowY: 'auto', padding: '8px 0' }}>
-            {treeStructure.map((item, idx) => (
-              <TreeItem
-                key={`${item.sourceId}-${item.path}-${idx}`}
-                item={item}
-                level={item.level}
-                isExpanded={expandedDirs.has(`${item.sourceId}:${item.path}`)}
-                onToggle={(p) => toggleDir(`${item.sourceId}:${p}`)}
-                isSelected={item.type === 'blob'
-                  ? selectedFiles.some(f => f.path === item.path && f.sourceId === item.sourceId)
-                  : tree.filter(f => f.type === 'blob' && f.path.startsWith(item.path + '/') && f.sourceId === item.sourceId)
-                        .every(c => selectedFiles.some(sf => sf.path === c.path && sf.sourceId === c.sourceId)) &&
-                    tree.filter(f => f.type === 'blob' && f.path.startsWith(item.path + '/') && f.sourceId === item.sourceId).length > 0
-                }
-                onSelect={toggleSelect}
-                isMobile={isMobile}
-              />
             ))}
           </div>
+        )}
+
+        {/* Filter by Type section (with horizontal scroll, no wrap) */}
+        {fileExtensions.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="filter" size={12} color={colors.textSecondary} />
+              <span style={{ fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, color: colors.textSecondary }}>Filter by type</span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'row', 
+              flexWrap: 'nowrap', 
+              gap: 8, 
+              overflowX: 'auto', 
+              paddingBottom: 8,
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'thin'
+            }}>
+              {fileExtensions.map(ext => {
+                const isActive = selectedExtensions.has(ext);
+                return (
+                  <button
+                    key={ext}
+                    onClick={() => toggleExtension(ext)}
+                    style={{
+                      backgroundColor: isActive ? '#ffffff' : colors.surface,
+                      color: isActive ? '#000000' : colors.text,
+                      border: `1px solid ${isActive ? '#ffffff' : colors.border}`,
+                      borderRadius: 6,
+                      padding: '6px 12px',
+                      fontSize: 13,
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease-in-out',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {ext}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Expand / Collapse All section */}
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          <button 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} 
+            onClick={() => {
+              const allDirs = new Set(['']);
+              tree.forEach(f => {
+                let p = f.path;
+                while (p.includes('/')) {
+                  p = p.substring(0, p.lastIndexOf('/'));
+                  allDirs.add(`${f.sourceId}:${p}`);
+                }
+              });
+              setExpandedDirs(allDirs);
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="plus" size={12} color={colors.text} />
+              <span style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Expand All</span>
+            </div>
+          </button>
+
+          <span style={{ color: colors.border }}>—</span>
+
+          <button 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} 
+            onClick={() => setExpandedDirs(new Set(['']))}
+          >
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>Collapse All</span>
+            </div>
+          </button>
         </div>
 
+        {/* Tree View Container */}
+        <div style={{ backgroundColor: colors.surface, borderRadius: 8, border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
+          <div style={{ maxHeight: 400, overflowY: 'auto', padding: '8px 8px' }}>
+            {treeStructure.length > 0 ? (
+              treeStructure.map((item, idx) => (
+                <TreeItem
+                  key={`${item.sourceId}-${item.path}-${idx}`}
+                  item={item}
+                  level={item.level}
+                  isExpanded={expandedDirs.has(`${item.sourceId}:${item.path}`)}
+                  onToggle={(p) => toggleDir(`${item.sourceId}:${p}`)}
+                  isSelected={item.type === 'blob'
+                    ? selectedFiles.some(f => f.path === item.path && f.sourceId === item.sourceId)
+                    : isFolderSelected(item)
+                  }
+                  onSelect={toggleSelect}
+                  isMobile={isMobile}
+                />
+              ))
+            ) : (
+              <div style={{ padding: '20px 16px', textAlign: 'center', color: colors.textSecondary, fontSize: 13 }}>
+                No files match the active filters
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* System Instructions / Preamble */}
         <div style={{ marginTop: 24 }}>
           <span style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 8, display: 'block', textTransform: 'uppercase' }}>
             System Instructions (Optional)
@@ -278,6 +418,7 @@ const SelectionComponent = ({
           />
         </div>
 
+        {/* Action Button */}
         <button
           style={{
             backgroundColor: colors.primary,
@@ -296,11 +437,11 @@ const SelectionComponent = ({
           disabled={loading || selectedCount === 0}
         >
           {loading ? (
-            <span style={{ color: isDark ? '#000' : '#fff' }}>Generating...</span>
+            <span style={{ color: '#fff' }}>Generating...</span>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Icon name="rocket" size={18} color={isDark ? '#000' : '#fff'} />
-              <span style={{ color: isDark ? '#000' : '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 }}>Generate Context Bundle</span>
+              <Icon name="rocket" size={18} color="#fff" />
+              <span style={{ color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.5 }}>Generate Context Bundle</span>
             </div>
           )}
         </button>

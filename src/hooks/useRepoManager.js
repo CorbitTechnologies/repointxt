@@ -164,7 +164,7 @@ export const useRepoManager = () => {
                         if (e.kind === 'directory') { if (!shouldIgnore(ep, ignorePatterns)) await read(e, ep); }
                         else if (e.kind === 'file' && !shouldIgnore(ep, ignorePatterns) && !isImageFile(ep)) {
                             const f = await e.getFile();
-                            files.push({ path: ep, size: f.size, url: createTrackedBlobUrl(f) });
+                            files.push({ path: ep, size: f.size, url: createTrackedBlobUrl(f), file: f });
                         }
                     }
                 };
@@ -194,7 +194,7 @@ export const useRepoManager = () => {
             try {
                 const selected = Array.from(e.target.files);
                 const treeItems = selected.filter(f => !shouldIgnore(f.name, ignorePatterns) && !isImageFile(f.name)).map((f, i) => {
-                    return { path: f.name, type: 'blob', size: f.size, url: createTrackedBlobUrl(f), sha: `loc-file-${Date.now()}-${i}` };
+                    return { path: f.name, type: 'blob', size: f.size, url: createTrackedBlobUrl(f), file: f, sha: `loc-file-${Date.now()}-${i}` };
                 });
                 const newSource = { id: `loc-files-${Date.now()}`, type: 'local', name: 'Local Files', tree: treeItems, selectedFiles: treeItems.filter(i => {
                     for (const unselectPattern of DEFAULT_UNSELECT_PATTERNS) {
@@ -217,28 +217,60 @@ export const useRepoManager = () => {
             if (preamble.trim()) parts.push(`INSTRUCTIONS:\n${preamble}\n${'='.repeat(20)}`);
             parts.push(`# AI Context Bundle - ${new Date().toLocaleDateString()}\n`);
             
+            const filesToProcess = [];
             for (const s of sources) {
                 if (s.selectedFiles.length === 0) continue;
-                parts.push(`\n## SOURCE: ${s.name}\n`);
-                for (const f of s.selectedFiles) {
-                    let content = '';
-                    if (s.type === 'github') {
-                        const headers = { 'Accept': 'application/vnd.github.v3.raw' };
-                        if (githubToken.trim()) headers['Authorization'] = `Bearer ${githubToken.trim()}`;
-                        const resp = await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}/contents/${f.path}`, { headers });
-                        content = await resp.text();
-                    } else {
-                        const resp = await fetch(f.url);
-                        content = await resp.text();
-                    }
-                    const opt = optimizeContent(content, f.path, { removeComments, removeExtraWhitespace });
-                    parts.push(`---\nFILE: ${s.name}/${f.path}\n\`\`\`\n${opt}\n\`\`\``);
-                }
+                filesToProcess.push(...s.selectedFiles.map(f => ({ 
+                    ...f, 
+                    sourceName: s.name, 
+                    sourceType: s.type, 
+                    sourceOwner: s.owner, 
+                    sourceRepo: s.repo 
+                })));
             }
+
+            const BATCH_SIZE = 15;
+            for (let i = 0; i < filesToProcess.length; i += BATCH_SIZE) {
+                const batch = filesToProcess.slice(i, i + BATCH_SIZE);
+                
+                const batchResults = await Promise.all(batch.map(async (f) => {
+                    try {
+                        let content = '';
+                        if (f.sourceType === 'github') {
+                            const headers = { 'Accept': 'application/vnd.github.v3.raw' };
+                            if (githubToken.trim()) headers['Authorization'] = `Bearer ${githubToken.trim()}`;
+                            const resp = await fetch(`https://api.github.com/repos/${f.sourceOwner}/${f.sourceRepo}/contents/${f.path}`, { headers });
+                            if (!resp.ok) throw new Error(`Failed to fetch file content`);
+                            content = await resp.text();
+                        } else {
+                            if (f.file) {
+                                content = await f.file.text();
+                            } else {
+                                const resp = await fetch(f.url);
+                                if (!resp.ok) throw new Error(`Failed to read file`);
+                                content = await resp.text();
+                            }
+                        }
+                        const opt = optimizeContent(content, f.path, { removeComments, removeExtraWhitespace });
+                        return `\n---\nFILE: ${f.sourceName}/${f.path}\n\`\`\`\n${opt}\n\`\`\``;
+                    } catch (err) {
+                        return `\n---\nFILE: ${f.sourceName}/${f.path}\n[Error reading file: ${err.message}]`;
+                    }
+                }));
+
+                parts.push(...batchResults);
+                
+                // Yield to the browser main thread to keep UI completely responsive and allow GC
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
             setCombinedOutput(parts.join('\n'));
-        } catch (e) { window.alert('Generation failed'); }
-        finally { setLoading(false); }
-    }, [sources, selectedFiles, preamble, removeComments, removeExtraWhitespace, githubToken]);
+        } catch (e) { 
+            window.alert('Generation failed'); 
+        } finally { 
+            setLoading(false); 
+        }
+    }, [sources, preamble, removeComments, removeExtraWhitespace, githubToken]);
 
     const removeSource = useCallback((id) => {
         setSources(prev => prev.filter(s => s.id !== id));
@@ -270,7 +302,7 @@ export const useRepoManager = () => {
                         const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
                         const filePath = path ? `${path}/${file.name}` : file.name;
                         if (!shouldIgnore(filePath, ignorePatterns) && !isImageFile(filePath)) {
-                            files.push({ path: filePath, size: file.size, url: createTrackedBlobUrl(file) });
+                            files.push({ path: filePath, size: file.size, url: createTrackedBlobUrl(file), file: file });
                         }
                     } else if (entry.isDirectory) {
                         const dirPath = path ? `${path}/${entry.name}` : entry.name;
