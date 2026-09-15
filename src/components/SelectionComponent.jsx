@@ -8,37 +8,38 @@ const TreeItem = memo(({ item, level, isExpanded, onToggle, selectionState, onSe
   const isFile = item.type === 'blob';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', padding: '2px 0', minHeight: 28, userSelect: 'none' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', padding: '3px 0', minHeight: 28, userSelect: 'none' }}>
       {Array.from({ length: level }).map((_, i) => (
         <div key={`indent-${i}`} style={{ width: 14, height: 28, borderLeft: `1px solid ${colors.border}`, marginRight: 2, flexShrink: 0 }} />
       ))}
 
       <button
         style={{
-          width: 20, height: 20, alignItems: 'center', justifyContent: 'center', display: 'flex',
+          width: 22, height: 22, alignItems: 'center', justifyContent: 'center', display: 'flex',
           background: 'none', border: 'none', cursor: isFile ? 'default' : 'pointer', padding: 0, flexShrink: 0
         }}
         onClick={() => !isFile && onToggle(item.path)}
       >
-        {!isFile && <Icon name={isExpanded ? "chevron-down" : "chevron-right"} size={12} color={colors.textSecondary} />}
+        {!isFile && <Icon name={isExpanded ? "chevron-down" : "chevron-right"} size={13} color={colors.textSecondary} />}
       </button>
 
       <button
         style={{
-          display: 'flex', flexDirection: 'row', alignItems: 'center', flex: 1, padding: '3px 8px',
+          display: 'flex', flexDirection: 'row', alignItems: 'center', flex: 1, padding: '4px 8px',
           borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minWidth: 0,
-          transition: 'background 0.1s ease'
+          transition: 'background 0.15s ease'
         }}
         onClick={() => onSelect(item)}
       >
         <div style={{
-          width: 15, height: 15, borderRadius: 4,
+          width: 16, height: 16, borderRadius: 4,
           border: `1.5px solid ${selectionState !== 'none' ? colors.primary : colors.border}`,
           backgroundColor: selectionState !== 'none' ? colors.primary : 'transparent',
-          alignItems: 'center', justifyContent: 'center', display: 'flex', marginRight: 8, flexShrink: 0
+          alignItems: 'center', justifyContent: 'center', display: 'flex', marginRight: 8, flexShrink: 0,
+          transition: 'all 0.15s ease'
         }}>
-          {selectionState === 'full' && <Icon name="check" size={10} color="#ffffff" />}
-          {selectionState === 'partial' && <Icon name="minus" size={10} color="#ffffff" />}
+          {selectionState === 'full' && <Icon name="check" size={11} color="#ffffff" />}
+          {selectionState === 'partial' && <Icon name="minus" size={11} color="#ffffff" />}
         </div>
 
         <Icon name={isFile ? "file" : "folder"} size={14} color={isFile ? colors.textSecondary : colors.primary} style={{ marginRight: 8, flexShrink: 0 }} />
@@ -78,9 +79,7 @@ const SelectionComponent = ({
       blobs = blobs.filter(f => selectedExtensions.has(getExtension(f.name || f.path).toLowerCase()));
     }
 
-    // parentKey -> { folders: Map(path -> folderObj), files: array }
     const childrenMap = new Map();
-    // folderKey -> array of descendant blob files
     const folderDescendants = new Map();
 
     blobs.forEach(file => {
@@ -97,7 +96,6 @@ const SelectionComponent = ({
         ...file, type: 'blob', name: fileName, level
       });
 
-      // Register parent folders
       for (let i = 0; i < parts.length; i++) {
         const folderPath = parts.slice(0, i + 1).join('/');
         const folderParentPath = parts.slice(0, i).join('/');
@@ -125,16 +123,13 @@ const SelectionComponent = ({
       }
     });
 
-    // Build hierarchical flat list
     const result = [];
 
     const processParent = (parentKey) => {
       const group = childrenMap.get(parentKey);
       if (!group) return;
 
-      // Sort subfolders alphabetically
       const sortedFolders = Array.from(group.folders.values()).sort((a, b) => a.name.localeCompare(b.name));
-      // Sort files alphabetically
       const sortedFiles = group.files.sort((a, b) => a.name.localeCompare(b.name));
 
       for (const folder of sortedFolders) {
@@ -147,7 +142,6 @@ const SelectionComponent = ({
       }
     };
 
-    // Get all source root keys
     const sourceIds = new Set(blobs.map(b => b.sourceId));
     sourceIds.forEach(sId => processParent(`${sId}:`));
 
@@ -251,10 +245,14 @@ const SelectionComponent = ({
     } else if (type === 'none') {
       setSelectedFiles([]);
     } else if (type === 'core') {
-      // Core logic directories like src/, lib/, app/, pkg/
       setSelectedFiles(blobs.filter(f => {
-        const lower = f.path.toLowerCase();
-        return lower.startsWith('src/') || lower.startsWith('app/') || lower.startsWith('lib/') || lower.startsWith('pkg/');
+        const lower = (f.originalPath || f.path).toLowerCase();
+        return (
+          lower.includes('src/') || lower.includes('lib/') || lower.includes('app/') ||
+          lower.includes('packages/') || lower.includes('apps/') || lower.includes('supabase/') ||
+          lower.includes('functions/') || lower.includes('components/') || lower.includes('hooks/') ||
+          ['package.json', 'pubspec.yaml', 'cargo.toml', 'go.mod', 'pyproject.toml', 'turbo.json'].includes(lower.split('/').pop())
+        );
       }));
     }
   };
@@ -267,41 +265,53 @@ const SelectionComponent = ({
   return (
     <div style={{ backgroundColor: colors.card, borderRadius: borderRadius.xl, padding: isMobile ? 16 : 24, border: `1px solid ${colors.border}`, ...shadows.md }}>
 
-      {/* Header & Source Tags */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+      {/* Header & Preset Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 17, fontWeight: '800', color: colors.text, letterSpacing: -0.3 }}>Codebase Selection</span>
-            <span style={{ fontSize: 11, fontWeight: '800', backgroundColor: colors.primary + '18', color: colors.primary, padding: '2px 8px', borderRadius: 10 }}>
-              {selectedCount} / {totalCount} files
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: -0.3 }}>
+              Codebase Selection
+            </span>
+            <span style={{ fontSize: 11, fontWeight: '800', backgroundColor: colors.primary + '20', color: colors.primary, padding: '3px 10px', borderRadius: 12 }}>
+              {selectedCount} of {totalCount} files selected
             </span>
           </div>
-          <span style={{ fontSize: 12, color: colors.textSecondary, display: 'block', marginTop: 3 }}>
-            Toggle individual files or use quick preset filters below
+          <span style={{ fontSize: 12, color: colors.textSecondary, display: 'block', marginTop: 4 }}>
+            Files auto-selected based on framework detection (React monorepo, Flutter, Supabase, Node).
           </span>
         </div>
 
         {/* Preset Buttons */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => applyPreset('core')} style={{ padding: '6px 12px', fontSize: 12, fontWeight: '700', borderRadius: 6, border: `1px solid ${colors.primary + '40'}`, backgroundColor: colors.primary + '10', color: colors.primary, cursor: 'pointer', transition: 'all 0.15s ease' }}>
-            🎯 Core Logic
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => applyPreset('core')}
+            style={{ padding: '7px 14px', fontSize: 12, fontWeight: '700', borderRadius: borderRadius.md, border: `1px solid ${colors.primary}50`, backgroundColor: colors.primary + '15', color: colors.primary, cursor: 'pointer', transition: 'all 0.15s ease' }}
+          >
+            🎯 Auto Core & Monorepo
           </button>
-          <button onClick={() => applyPreset('all')} style={{ padding: '6px 12px', fontSize: 12, fontWeight: '700', borderRadius: 6, border: `1px solid ${colors.border}`, backgroundColor: colors.surface, color: colors.text, cursor: 'pointer', transition: 'all 0.15s ease' }}>
-            All
+          <button
+            onClick={() => applyPreset('all')}
+            style={{ padding: '7px 14px', fontSize: 12, fontWeight: '700', borderRadius: borderRadius.md, border: `1px solid ${colors.border}`, backgroundColor: colors.surface, color: colors.text, cursor: 'pointer', transition: 'all 0.15s ease' }}
+          >
+            Select All
           </button>
-          <button onClick={() => applyPreset('none')} style={{ padding: '6px 12px', fontSize: 12, fontWeight: '700', borderRadius: 6, border: `1px solid ${colors.border}`, backgroundColor: colors.surface, color: colors.textSecondary, cursor: 'pointer', transition: 'all 0.15s ease' }}>
-            None
+          <button
+            onClick={() => applyPreset('none')}
+            style={{ padding: '7px 14px', fontSize: 12, fontWeight: '700', borderRadius: borderRadius.md, border: `1px solid ${colors.border}`, backgroundColor: colors.surface, color: colors.textSecondary, cursor: 'pointer', transition: 'all 0.15s ease' }}
+          >
+            Clear All
           </button>
         </div>
       </div>
 
-      {/* Sources Chips */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+      {/* Loaded Sources Chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         {sources.map(s => (
-          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: colors.surface, padding: '4px 10px', borderRadius: 6, border: `1px solid ${colors.border}`, fontSize: 12 }}>
-            <Icon name={s.type === 'github' ? 'github' : 'folder'} size={12} color={colors.primary} />
+          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: colors.surface, padding: '5px 12px', borderRadius: borderRadius.md, border: `1px solid ${colors.border}`, fontSize: 12 }}>
+            <Icon name={s.type === 'github' ? 'github' : 'folder'} size={13} color={colors.primary} />
             <span style={{ fontWeight: '700', color: colors.text }}>{s.name}</span>
-            <button onClick={() => removeSource(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            {s.branch && <span style={{ fontSize: 10, color: colors.textSecondary, backgroundColor: colors.card, padding: '1px 5px', borderRadius: 4 }}>{s.branch}</span>}
+            <button onClick={() => removeSource(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}>
               <Icon name="x" size={12} color={colors.error} />
             </button>
           </div>
@@ -309,8 +319,8 @@ const SelectionComponent = ({
       </div>
 
       {/* Tree Container */}
-      <div style={{ backgroundColor: colors.background, borderRadius: borderRadius.md, border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
-        <div style={{ maxHeight: 360, overflowY: 'auto', padding: 8 }}>
+      <div style={{ backgroundColor: colors.background, borderRadius: borderRadius.lg, border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
+        <div style={{ maxHeight: 380, overflowY: 'auto', padding: '10px 12px' }}>
           {visibleTree.map((item, idx) => (
             <TreeItem
               key={`${item.sourceId}-${item.path}-${idx}`}
@@ -325,35 +335,39 @@ const SelectionComponent = ({
         </div>
       </div>
 
-      {/* Optional System Prompt */}
-      <div style={{ marginTop: 16 }}>
-        <span style={{ fontSize: 11, fontWeight: '800', textTransform: 'uppercase', color: colors.textSecondary, marginBottom: 6, display: 'block' }}>
-          System Instructions / Preamble (Optional)
-        </span>
+      {/* System Instructions / Preamble */}
+      <div style={{ marginTop: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, color: colors.textSecondary }}>
+            System Instructions / Prompt Preamble (Optional)
+          </span>
+        </div>
         <textarea
           style={{
             width: '100%', boxSizing: 'border-box', backgroundColor: colors.surface, borderColor: colors.border,
-            borderWidth: 1, borderStyle: 'solid', borderRadius: 6, padding: 10, color: colors.text, fontSize: 13,
-            minHeight: 64, outline: 'none', resize: 'vertical'
+            borderWidth: 1, borderStyle: 'solid', borderRadius: borderRadius.md, padding: '12px 14px', color: colors.text, fontSize: 13,
+            minHeight: 70, outline: 'none', resize: 'vertical', fontFamily: 'inherit'
           }}
-          placeholder="e.g., 'Refactor this module to TypeScript and resolve circular dependencies...'"
+          placeholder="e.g., 'Perform a security audit and refactor components to use clean React hooks...'"
           value={preamble}
           onChange={(e) => setPreamble(e.target.value)}
         />
       </div>
 
-      {/* Generate Button */}
+      {/* Generate Action Button */}
       <button
         style={{
-          width: '100%', backgroundColor: colors.primary, borderRadius: borderRadius.md, padding: 14, marginTop: 16,
+          width: '100%', backgroundColor: colors.primary, borderRadius: borderRadius.md, padding: 15, marginTop: 18,
           border: 'none', color: '#ffffff', fontSize: 15, fontWeight: '800', cursor: loading || selectedCount === 0 ? 'default' : 'pointer',
-          opacity: loading || selectedCount === 0 ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+          opacity: loading || selectedCount === 0 ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          boxShadow: selectedCount > 0 ? '0 4px 16px rgba(0, 85, 255, 0.35)' : 'none',
+          transition: 'all 0.2s ease'
         }}
         onClick={onGenerate}
         disabled={loading || selectedCount === 0}
       >
-        <Icon name="zap" size={16} color="#ffffff" />
-        <span>{loading ? 'Processing Context...' : `Generate Prompt Context Bundle (${selectedCount} files)`}</span>
+        <Icon name="zap" size={18} color="#ffffff" />
+        <span>{loading ? 'Bundling Prompt Context...' : `Generate LLM Context Bundle (${selectedCount} files)`}</span>
       </button>
     </div>
   );

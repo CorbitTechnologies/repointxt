@@ -81,70 +81,54 @@ export const smartSelectFiles = (treeItems) => {
 
   if (validBlobs.length === 0) return [];
 
-  // Check for Flutter project
-  const isFlutter = validBlobs.some(item => {
-    const filename = item.path.split('/').pop().toLowerCase();
-    return filename === 'pubspec.yaml' || filename === 'pubspec.yml';
-  });
+  const CORE_DIRECTORIES = new Set([
+    'src', 'lib', 'app', 'apps', 'packages', 'services', 'libs', 'modules',
+    'pages', 'components', 'hooks', 'routes', 'functions', 'function',
+    'supabase', 'db', 'prisma', 'api', 'core', 'pkg', 'cmd', 'internal'
+  ]);
 
-  if (isFlutter) {
-    const flutterSelected = validBlobs.filter(item => {
-      const filename = item.path.split('/').pop().toLowerCase();
-      if (filename === 'pubspec.yaml' || filename === 'pubspec.yml') return true;
+  const ESSENTIAL_FILENAMES = new Set([
+    'package.json', 'pubspec.yaml', 'pubspec.yml', 'cargo.toml', 'go.mod',
+    'pyproject.toml', 'requirements.txt', 'index.html', 'turbo.json',
+    'pnpm-workspace.yaml', 'lerna.json', 'nx.json', 'tsconfig.json',
+    'vite.config.js', 'vite.config.ts', 'next.config.js', 'next.config.mjs',
+    'next.config.ts', 'config.toml', 'seed.sql'
+  ]);
 
-      const parts = item.path.toLowerCase().split('/');
-      return parts.includes('lib');
-    });
-
-    if (flutterSelected.length > 0) {
-      return flutterSelected;
-    }
-  }
-
-  // Check for Node / Bun project
-  const isNodeBun = validBlobs.some(item => {
-    const filename = item.path.split('/').pop().toLowerCase();
-    return filename === 'package.json';
-  });
-
-  if (isNodeBun) {
-    const nodeSelected = validBlobs.filter(item => {
-      const filename = item.path.split('/').pop().toLowerCase();
-      if (filename === 'package.json') return true;
-
-      const parts = item.path.toLowerCase().split('/');
-      const inSrc = parts.includes('src');
-      const inFunctions = parts.includes('functions') || parts.includes('function') || parts.includes('api');
-
-      return inSrc || inFunctions;
-    });
-
-    if (nodeSelected.length > 0) {
-      return nodeSelected;
-    }
-  }
-
-  // Fallback for general projects: select core directories & config files
-  const coreSelected = validBlobs.filter(item => {
-    const lower = item.path.toLowerCase();
+  const selected = validBlobs.filter(item => {
+    const origPath = item.originalPath || item.path;
+    const lower = origPath.toLowerCase();
     const parts = lower.split('/');
-    if (parts.length > 1) {
-      const topDir = parts[0];
-      if (['src', 'lib', 'app', 'pages', 'functions', 'function', 'pkg', 'api', 'core'].includes(topDir)) {
-        return true;
-      }
-    }
-    const filename = item.path.split('/').pop().toLowerCase();
-    if (['package.json', 'cargo.toml', 'pubspec.yaml', 'go.mod', 'pyproject.toml', 'requirements.txt', 'index.html'].includes(filename)) {
+    const filename = parts[parts.length - 1];
+
+    // Check if essential config file
+    if (ESSENTIAL_FILENAMES.has(filename)) {
       return true;
     }
+
+    // Check if path contains any core source directory (monorepo or standard)
+    const isInCoreDir = parts.some((part, idx) => {
+      if (idx === parts.length - 1) return false;
+      return CORE_DIRECTORIES.has(part);
+    });
+
+    if (isInCoreDir) {
+      return true;
+    }
+
+    // Top-level source files (e.g. main.js, App.tsx, index.ts, lib.rs, main.go)
+    if (parts.length === 1 && isCodeFile(origPath)) {
+      return true;
+    }
+
     return false;
   });
 
-  if (coreSelected.length > 0) {
-    return coreSelected;
+  if (selected.length > 0) {
+    return selected;
   }
 
+  // Fallback: select all valid blobs if none matched core rules
   return validBlobs;
 };
 
