@@ -69,11 +69,15 @@ export const useRepoManager = () => {
     const allItems = [];
     sources.forEach(source => {
       source.tree.forEach(item => {
+        const origPath = item.originalPath || item.path;
         allItems.push({
           ...item,
-          path: sources.length > 1 ? `${source.name}/${item.path}` : item.path,
-          originalPath: item.path,
-          sourceId: source.id
+          originalPath: origPath,
+          path: sources.length > 1 ? `${source.name}/${origPath}` : origPath,
+          sourceId: source.id,
+          sourceOwner: source.owner,
+          sourceRepo: source.repo,
+          sourceBranch: source.branch
         });
       });
     });
@@ -84,11 +88,15 @@ export const useRepoManager = () => {
     const allSelected = [];
     sources.forEach(source => {
       source.selectedFiles.forEach(file => {
+        const origPath = file.originalPath || file.path;
         allSelected.push({
           ...file,
-          path: sources.length > 1 ? `${source.name}/${file.path}` : file.path,
-          originalPath: file.path,
-          sourceId: source.id
+          originalPath: origPath,
+          path: sources.length > 1 ? `${source.name}/${origPath}` : origPath,
+          sourceId: source.id,
+          sourceOwner: source.owner,
+          sourceRepo: source.repo,
+          sourceBranch: source.branch
         });
       });
     });
@@ -98,17 +106,28 @@ export const useRepoManager = () => {
   const setSelectedFiles = useCallback((updater) => {
     setSources(prev => {
       const currentFlat = [];
-      prev.forEach(s => s.selectedFiles.forEach(f => currentFlat.push({
-        ...f,
-        path: prev.length > 1 ? `${s.name}/${f.path}` : f.path,
-        originalPath: f.path,
-        sourceId: s.id
-      })));
+      prev.forEach(s => s.selectedFiles.forEach(f => {
+        const origPath = f.originalPath || f.path;
+        currentFlat.push({
+          ...f,
+          originalPath: origPath,
+          path: prev.length > 1 ? `${s.name}/${origPath}` : origPath,
+          sourceId: s.id,
+          sourceOwner: s.owner,
+          sourceRepo: s.repo,
+          sourceBranch: s.branch
+        });
+      }));
       const nextFlat = typeof updater === 'function' ? updater(currentFlat) : updater;
       const grouped = {};
       nextFlat.forEach(f => {
         if (!grouped[f.sourceId]) grouped[f.sourceId] = [];
-        grouped[f.sourceId].push({ ...f, path: f.originalPath });
+        const origPath = f.originalPath || f.path;
+        grouped[f.sourceId].push({
+          ...f,
+          originalPath: origPath,
+          path: origPath
+        });
       });
       return prev.map(s => ({ ...s, selectedFiles: grouped[s.id] || [] }));
     });
@@ -150,7 +169,7 @@ export const useRepoManager = () => {
       let repoResp = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}`, { headers: getAuthHeaders(true) });
       updateRateLimit(repoResp);
       if (!repoResp.ok && trimmedToken) {
-        // Fallback to unauthenticated fetch if token fails (e.g. invalid/expired token on public repo)
+        // Fallback to unauthenticated fetch if token fails
         const unauthResp = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}`, { headers: getAuthHeaders(false) });
         if (unauthResp.ok) {
           repoResp = unauthResp;
@@ -168,10 +187,11 @@ export const useRepoManager = () => {
       const targetBranch = githubBranch.trim() || repoData.default_branch;
 
       // Fetch tree recursively
-      let treeResp = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/${targetBranch}?recursive=1`, { headers: getAuthHeaders(true) });
+      const treeApiUrl = `https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/${encodeURIComponent(targetBranch)}?recursive=1`;
+      let treeResp = await fetch(treeApiUrl, { headers: getAuthHeaders(true) });
       updateRateLimit(treeResp);
       if (!treeResp.ok && trimmedToken) {
-        const unauthResp = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}/git/trees/${targetBranch}?recursive=1`, { headers: getAuthHeaders(false) });
+        const unauthResp = await fetch(treeApiUrl, { headers: getAuthHeaders(false) });
         if (unauthResp.ok) {
           treeResp = unauthResp;
           updateRateLimit(treeResp);
@@ -190,7 +210,10 @@ export const useRepoManager = () => {
         if (i.type !== 'blob') return false;
         if (shouldIgnore(i.path, ignorePatterns)) return false;
         return true;
-      });
+      }).map(i => ({
+        ...i,
+        originalPath: i.path
+      }));
 
       const newSource = {
         id: `gh-${Date.now()}`,
@@ -236,7 +259,13 @@ export const useRepoManager = () => {
             if (!shouldIgnore(entryPath, ignorePatterns)) {
               const fileObj = await entry.getFile();
               if (fileObj.size <= Number(maxFileSize) * 1024) {
-                files.push({ path: entryPath, size: fileObj.size, url: createTrackedBlobUrl(fileObj), file: fileObj });
+                files.push({
+                  path: entryPath,
+                  originalPath: entryPath,
+                  size: fileObj.size,
+                  url: createTrackedBlobUrl(fileObj),
+                  file: fileObj
+                });
               }
             }
           }
@@ -279,6 +308,7 @@ export const useRepoManager = () => {
           .filter(f => !shouldIgnore(f.name, ignorePatterns))
           .map((f, i) => ({
             path: f.name,
+            originalPath: f.name,
             type: 'blob',
             size: f.size,
             url: createTrackedBlobUrl(f),
@@ -313,12 +343,20 @@ export const useRepoManager = () => {
     try {
       const allFiles = [];
       for (const s of sources) {
-        if (s.selectedFiles.length === 0) continue;
-        allFiles.push(...s.selectedFiles.map(f => ({
-          ...f,
-          sourceName: s.name,
-          sourceType: s.type
-        })));
+        if (!s.selectedFiles || s.selectedFiles.length === 0) continue;
+        allFiles.push(...s.selectedFiles.map(f => {
+          const origPath = f.originalPath || f.path;
+          return {
+            ...f,
+            originalPath: origPath,
+            displayPath: sources.length > 1 ? `${s.name}/${origPath}` : origPath,
+            sourceName: s.name,
+            sourceType: s.type,
+            sourceOwner: s.owner,
+            sourceRepo: s.repo,
+            sourceBranch: s.branch
+          };
+        }));
       }
 
       // Chunk into batches based on LLM Context Target
@@ -330,7 +368,7 @@ export const useRepoManager = () => {
         const parts = [];
 
         if (preamble.trim()) {
-          parts.push(`SYSTEM INSTRUCTIONS:\n${preamble}\n${'='.repeat(30)}`);
+          parts.push(`SYSTEM INSTRUCTIONS:\n${preamble}\n${'=' .repeat(30)}`);
         }
 
         const batchLabel = fileBatches.length > 1 ? ` (Part ${bIndex + 1} of ${fileBatches.length})` : '';
@@ -347,12 +385,13 @@ export const useRepoManager = () => {
                 const trimmedToken = githubToken.trim();
                 const owner = f.sourceOwner || sources[0]?.owner;
                 const repo = f.sourceRepo || sources[0]?.repo;
-                const ref = f.branch || sources[0]?.branch || 'main';
-                const fileUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${f.originalPath}?ref=${ref}`;
+                const ref = f.sourceBranch || f.branch || sources[0]?.branch || 'main';
+                const cleanPath = f.originalPath || f.path;
+                const encodedPath = cleanPath.split('/').map(encodeURIComponent).join('/');
 
-                const getRawHeaders = (includeToken = true) => {
-                  const h = { 'Accept': 'application/vnd.github.v3.raw' };
-                  if (includeToken && trimmedToken) {
+                const getAuthHeaders = () => {
+                  const h = {};
+                  if (trimmedToken) {
                     h['Authorization'] = trimmedToken.startsWith('ghp_') || trimmedToken.startsWith('github_pat_')
                       ? `token ${trimmedToken}`
                       : `Bearer ${trimmedToken}`;
@@ -360,29 +399,86 @@ export const useRepoManager = () => {
                   return h;
                 };
 
-                let resp = await fetch(fileUrl, { headers: getRawHeaders(true) });
-                if (!resp.ok && trimmedToken) {
-                  // Fallback to unauthenticated request if token fails (e.g. invalid/expired token on public repo)
-                  const unauthResp = await fetch(fileUrl, { headers: getRawHeaders(false) });
-                  if (unauthResp.ok) {
-                    resp = unauthResp;
+                let contentFetched = null;
+                let fetchError = null;
+
+                // Attempt 1: Contents API with vnd.github.v3.raw
+                try {
+                  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`;
+                  let resp = await fetch(apiUrl, {
+                    headers: { 'Accept': 'application/vnd.github.v3.raw', ...getAuthHeaders() }
+                  });
+
+                  if (!resp.ok && trimmedToken) {
+                    const unauthResp = await fetch(apiUrl, {
+                      headers: { 'Accept': 'application/vnd.github.v3.raw' }
+                    });
+                    if (unauthResp.ok) resp = unauthResp;
+                  }
+
+                  if (resp.ok) {
+                    contentFetched = await resp.text();
+                  } else {
+                    fetchError = `API HTTP ${resp.status}`;
+                  }
+                } catch (e) {
+                  fetchError = e.message;
+                }
+
+                // Attempt 2: Raw Github User Content fallback
+                if (contentFetched === null) {
+                  try {
+                    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(ref)}/${encodedPath}`;
+                    let rawResp = await fetch(rawUrl, { headers: getAuthHeaders() });
+                    if (!rawResp.ok && trimmedToken) {
+                      rawResp = await fetch(rawUrl);
+                    }
+                    if (rawResp.ok) {
+                      contentFetched = await rawResp.text();
+                    } else if (!fetchError) {
+                      fetchError = `Raw HTTP ${rawResp.status}`;
+                    }
+                  } catch (e) {
+                    if (!fetchError) fetchError = e.message;
                   }
                 }
 
-                if (!resp.ok) {
-                  const errorData = await resp.json().catch(() => ({}));
-                  const detail = errorData.message ? `${resp.status} ${errorData.message}` : `HTTP ${resp.status}`;
-                  throw new Error(`Fetch failed: ${detail}`);
+                // Attempt 3: Base64 JSON contents API fallback
+                if (contentFetched === null) {
+                  try {
+                    const jsonUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`;
+                    let jsonResp = await fetch(jsonUrl, {
+                      headers: { 'Accept': 'application/vnd.github.v3+json', ...getAuthHeaders() }
+                    });
+                    if (jsonResp.ok) {
+                      const jsonBody = await jsonResp.json();
+                      if (jsonBody.content && jsonBody.encoding === 'base64') {
+                        const binaryStr = atob(jsonBody.content.replace(/\n/g, ''));
+                        const bytes = new Uint8Array(binaryStr.length);
+                        for (let k = 0; k < binaryStr.length; k++) {
+                          bytes[k] = binaryStr.charCodeAt(k);
+                        }
+                        contentFetched = new TextDecoder('utf-8').decode(bytes);
+                      }
+                    }
+                  } catch (e) {
+                    // ignore fallback error
+                  }
                 }
-                content = await resp.text();
+
+                if (contentFetched === null) {
+                  throw new Error(`Fetch failed: ${fetchError || '404 Not Found'}`);
+                }
+
+                content = contentFetched;
               } else {
                 content = f.file ? await f.file.text() : await (await fetch(f.url)).text();
               }
 
-              const opt = optimizeContent(content, f.path, { removeComments, removeExtraWhitespace });
-              return `\n---\nFILE: ${f.sourceName}/${f.path}\n\`\`\`\n${opt}\n\`\`\``;
+              const opt = optimizeContent(content, f.originalPath || f.path, { removeComments, removeExtraWhitespace });
+              return `\n---\nFILE: ${f.displayPath || f.path}\n\`\`\`\n${opt}\n\`\`\``;
             } catch (err) {
-              return `\n---\nFILE: ${f.sourceName}/${f.path}\n[Error loading content: ${err.message}]`;
+              return `\n---\nFILE: ${f.displayPath || f.path}\n[Error loading content: ${err.message}]`;
             }
           }));
 
@@ -445,6 +541,7 @@ export const useRepoManager = () => {
           .filter(f => !shouldIgnore(f.name, ignorePatterns))
           .map((f, i) => ({
             path: f.name,
+            originalPath: f.name,
             type: 'blob',
             size: f.size,
             url: createTrackedBlobUrl(f),

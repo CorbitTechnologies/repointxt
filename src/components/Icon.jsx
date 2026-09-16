@@ -1,27 +1,25 @@
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
 import icons from '../assets/icons.json';
-import { icons as corbitIconsLibrary } from 'corbit-icons';
 
 const Icon = ({ name, size = 20, color, style }) => {
   const { colors } = useTheme();
-  const svgString = icons[name] || corbitIconsLibrary[name];
-  
+  const svgString = icons[name];
+
   if (!svgString) {
-    console.warn(`Icon "${name}" not found in corbit-icons`);
+    console.warn(`Icon "${name}" not found`);
     return null;
   }
 
   const iconColor = color || colors.text;
 
-  // Robust SVG processing
+  // SVG processing
   let processedSvg = svgString
     .replace(/width="[^"]*"/g, '')
     .replace(/height="[^"]*"/g, '')
     .replace(/currentColor/g, iconColor)
     .replace(/stroke-width="[^"]*"/g, 'stroke-width="2"');
 
-  // Inject dimensions into the svg tag and ensure it fills the container
   processedSvg = processedSvg.replace(/<svg/i, `<svg width="100%" height="100%"`);
 
   return (
