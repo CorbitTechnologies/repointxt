@@ -14,6 +14,7 @@ const TreeItem = memo(({ item, level, isExpanded, onToggle, selectionState, onSe
       ))}
 
       <button
+        type="button"
         style={{
           width: 22, height: 22, alignItems: 'center', justifyContent: 'center', display: 'flex',
           background: 'none', border: 'none', cursor: isFile ? 'default' : 'pointer', padding: 0, flexShrink: 0
@@ -24,6 +25,7 @@ const TreeItem = memo(({ item, level, isExpanded, onToggle, selectionState, onSe
       </button>
 
       <button
+        type="button"
         style={{
           display: 'flex', flexDirection: 'row', alignItems: 'center', flex: 1, padding: '4px 8px',
           borderRadius: 6, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', minWidth: 0,
@@ -54,7 +56,7 @@ const TreeItem = memo(({ item, level, isExpanded, onToggle, selectionState, onSe
 
 const SelectionComponent = ({
   tree, sources, selectedFiles, setSelectedFiles,
-  onGenerate, loading, removeSource, preamble, setPreamble, isMobile
+  onGenerate, loading, removeSource, isMobile
 }) => {
   const { colors, borderRadius, shadows } = useTheme();
   const [expandedDirs, setExpandedDirs] = useState(new Set());
@@ -148,9 +150,12 @@ const SelectionComponent = ({
     return { hierarchyFlat: result, sourceFolderMap: folderDescendants };
   }, [tree, selectedExtensions]);
 
-  // Auto-expand top-level directories when hierarchy changes
+  // Auto-expand top-level directories when new tree items/sources are added
+  const prevSourceIdsRef = React.useRef('');
   useEffect(() => {
-    if (hierarchyFlat.length > 0) {
+    const currentSourcesKey = sources ? sources.map(s => `${s.id}:${s.tree?.length}`).join('|') : '';
+    if (hierarchyFlat.length > 0 && currentSourcesKey !== prevSourceIdsRef.current) {
+      prevSourceIdsRef.current = currentSourcesKey;
       setExpandedDirs(prev => {
         const next = new Set(prev);
         hierarchyFlat.forEach(item => {
@@ -161,7 +166,7 @@ const SelectionComponent = ({
         return next;
       });
     }
-  }, [hierarchyFlat]);
+  }, [hierarchyFlat, sources]);
 
   const toggleDir = useCallback((pathKey) => {
     setExpandedDirs(prev => {
@@ -321,9 +326,9 @@ const SelectionComponent = ({
       {/* Tree Container */}
       <div style={{ backgroundColor: colors.background, borderRadius: borderRadius.lg, border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
         <div style={{ maxHeight: 380, overflowY: 'auto', padding: '10px 12px' }}>
-          {visibleTree.map((item, idx) => (
+          {visibleTree.map((item) => (
             <TreeItem
-              key={`${item.sourceId}-${item.path}-${idx}`}
+              key={`${item.sourceId}:${item.path}`}
               item={item}
               level={item.level}
               isExpanded={expandedDirs.has(`${item.sourceId}:${item.path}`)}
@@ -333,25 +338,6 @@ const SelectionComponent = ({
             />
           ))}
         </div>
-      </div>
-
-      {/* System Instructions / Preamble */}
-      <div style={{ marginTop: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, color: colors.textSecondary }}>
-            System Instructions / Prompt Preamble (Optional)
-          </span>
-        </div>
-        <textarea
-          style={{
-            width: '100%', boxSizing: 'border-box', backgroundColor: colors.surface, borderColor: colors.border,
-            borderWidth: 1, borderStyle: 'solid', borderRadius: borderRadius.md, padding: '12px 14px', color: colors.text, fontSize: 13,
-            minHeight: 70, outline: 'none', resize: 'vertical', fontFamily: 'inherit'
-          }}
-          placeholder="e.g., 'Perform a security audit and refactor components to use clean React hooks...'"
-          value={preamble}
-          onChange={(e) => setPreamble(e.target.value)}
-        />
       </div>
 
       {/* Generate Action Button */}

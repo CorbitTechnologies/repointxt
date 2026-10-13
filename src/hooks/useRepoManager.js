@@ -14,7 +14,6 @@ export const useRepoManager = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [ignorePatterns, setIgnorePatterns] = useState(DEFAULT_IGNORE_PATTERNS.join(', '));
-  const [preamble, setPreamble] = useState('');
   const [removeComments, setRemoveComments] = useState(true);
   const [removeExtraWhitespace, setRemoveExtraWhitespace] = useState(true);
   const [maxContextTokens, setMaxContextTokens] = useState(1000000); // Default 1M (Gemini Context)
@@ -51,6 +50,7 @@ export const useRepoManager = () => {
       if (settings.removeExtraWhitespace !== undefined) setRemoveExtraWhitespace(settings.removeExtraWhitespace);
       if (settings.maxContextTokens !== undefined) setMaxContextTokens(settings.maxContextTokens);
       if (settings.maxFileSize) setMaxFileSize(settings.maxFileSize);
+      if (settings.activeTab) setActiveTab(settings.activeTab);
     }
   }, []);
 
@@ -60,10 +60,15 @@ export const useRepoManager = () => {
       removeComments,
       removeExtraWhitespace,
       maxContextTokens,
-      maxFileSize
+      maxFileSize,
+      activeTab
     });
     saveGitHubToken(githubToken);
-  }, [ignorePatterns, removeComments, removeExtraWhitespace, maxContextTokens, maxFileSize, githubToken]);
+  }, [ignorePatterns, removeComments, removeExtraWhitespace, maxContextTokens, maxFileSize, activeTab, githubToken]);
+
+  const sourceTreesKey = useMemo(() => {
+    return sources.map(s => `${s.id}:${s.name}:${s.tree.length}`).join('|');
+  }, [sources]);
 
   const treeData = useMemo(() => {
     const allItems = [];
@@ -82,7 +87,7 @@ export const useRepoManager = () => {
       });
     });
     return allItems.length > 0 ? { tree: allItems } : null;
-  }, [sources]);
+  }, [sourceTreesKey, sources.length]);
 
   const selectedFiles = useMemo(() => {
     const allSelected = [];
@@ -367,10 +372,6 @@ export const useRepoManager = () => {
         const batchFiles = fileBatches[bIndex];
         const parts = [];
 
-        if (preamble.trim()) {
-          parts.push(`SYSTEM INSTRUCTIONS:\n${preamble}\n${'=' .repeat(30)}`);
-        }
-
         const batchLabel = fileBatches.length > 1 ? ` (Part ${bIndex + 1} of ${fileBatches.length})` : '';
         parts.push(`# AI Context Bundle${batchLabel} - ${new Date().toLocaleDateString()}\n`);
 
@@ -518,7 +519,7 @@ export const useRepoManager = () => {
     loading, loadingMessage, sources, githubUrl, setGithubUrl, githubBranch, setGithubBranch,
     githubToken, setGithubToken, githubRateLimit, urlHistory,
     outputBatches, activeBatchIndex, setActiveBatchIndex, isDragging,
-    ignorePatterns, setIgnorePatterns, preamble, setPreamble,
+    ignorePatterns, setIgnorePatterns,
     removeComments, setRemoveComments, removeExtraWhitespace, setRemoveExtraWhitespace,
     maxContextTokens, setMaxContextTokens,
     maxFileSize, setMaxFileSize, activeTab, setActiveTab,

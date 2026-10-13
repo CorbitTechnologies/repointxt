@@ -21,7 +21,7 @@ export default function App() {
     loading, loadingMessage, sources, githubUrl, setGithubUrl, githubBranch, setGithubBranch,
     githubToken, setGithubToken, githubRateLimit, urlHistory,
     outputBatches, activeBatchIndex, setActiveBatchIndex, isDragging,
-    ignorePatterns, setIgnorePatterns, preamble, setPreamble,
+    ignorePatterns, setIgnorePatterns,
     removeComments, setRemoveComments, removeExtraWhitespace, setRemoveExtraWhitespace,
     maxContextTokens, setMaxContextTokens,
     maxFileSize, setMaxFileSize, activeTab, setActiveTab,
@@ -40,14 +40,8 @@ export default function App() {
       <header style={{ borderBottom: `1px solid ${colors.border}`, backgroundColor: isDark ? '#080808' : '#ffffff', padding: '14px 24px', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
         <div style={{ maxWidth: 1040, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 10, background: colors.primaryGradient, boxShadow: '0 2px 10px rgba(0, 85, 255, 0.3)' }}>
-              <Icon name="zap" size={20} color="#ffffff" />
-            </div>
             <span style={{ fontWeight: '900', fontSize: 23, letterSpacing: '-0.6px', color: colors.text }}>
               repoin<span style={{ color: colors.primary }}>t</span>xt
-            </span>
-            <span style={{ fontSize: 10, fontWeight: '800', backgroundColor: colors.primary + '18', color: colors.primary, padding: '4px 10px', borderRadius: 12, textTransform: 'uppercase', letterSpacing: 0.6, border: `1px solid ${colors.primary}30` }}>
-              GEMINI 2.0 & GPT-4o
             </span>
           </div>
 
@@ -111,8 +105,6 @@ export default function App() {
               setSelectedFiles={setSelectedFiles}
               onGenerate={generateText}
               loading={loading}
-              preamble={preamble}
-              setPreamble={setPreamble}
               isMobile={isMobile}
             />
           </div>

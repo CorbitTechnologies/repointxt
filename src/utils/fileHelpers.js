@@ -87,6 +87,10 @@ export const smartSelectFiles = (treeItems) => {
     'supabase', 'db', 'prisma', 'api', 'core', 'pkg', 'cmd', 'internal'
   ]);
 
+  const PLATFORM_BOILERPLATE_DIRS = new Set([
+    'android', 'ios', 'linux', 'macos', 'windows', 'web', '.dart_tool', 'build', 'out'
+  ]);
+
   const ESSENTIAL_FILENAMES = new Set([
     'package.json', 'pubspec.yaml', 'pubspec.yml', 'cargo.toml', 'go.mod',
     'pyproject.toml', 'requirements.txt', 'index.html', 'turbo.json',
@@ -100,6 +104,11 @@ export const smartSelectFiles = (treeItems) => {
     const lower = origPath.toLowerCase();
     const parts = lower.split('/');
     const filename = parts[parts.length - 1];
+
+    // Do not auto-select platform boilerplate directories (e.g. flutter android/, ios/, macos/, etc.)
+    if (parts.length > 1 && PLATFORM_BOILERPLATE_DIRS.has(parts[0])) {
+      return false;
+    }
 
     // Check if essential config file
     if (ESSENTIAL_FILENAMES.has(filename)) {
