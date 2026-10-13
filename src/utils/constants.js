@@ -1,6 +1,7 @@
 export const DEFAULT_IGNORE_PATTERNS = [
   'node_modules',
   '.git',
+  '.dart_tool',
   '.expo',
   '.expo-shared',
   '.next',
