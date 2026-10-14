@@ -13,12 +13,12 @@ interface ProcessingOptionsProps {
 }
 
 const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOption, isMobile }) => {
-  const { colors, borderRadius } = useTheme();
+  const { colors, borderRadius, isDark } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div style={{
-      backgroundColor: 'rgba(22, 27, 34, 0.65)',
+      backgroundColor: isDark ? 'rgba(22, 27, 34, 0.65)' : 'rgba(246, 248, 250, 0.8)',
       borderRadius: borderRadius.md,
       border: `1px solid ${colors.border}`,
       overflow: 'hidden',
@@ -47,10 +47,10 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
             width: 20,
             height: 20,
             borderRadius: 5,
-            backgroundColor: `${colors.primary}18`,
+            backgroundColor: isDark ? `${colors.primary}18` : 'rgba(9, 105, 218, 0.1)',
             flexShrink: 0
           }}>
-            <Icon name="settings" size={11} color={colors.primary} />
+            <Icon name="settings" size={11} color={isDark ? '#58a6ff' : '#0969da'} />
           </div>
           <span style={{
             fontSize: isMobile ? 12 : 12.5,
@@ -68,11 +68,11 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
           <span style={{
             fontSize: 10.5,
             fontWeight: '600',
-            color: '#58a6ff',
-            backgroundColor: 'rgba(56, 139, 253, 0.1)',
+            color: isDark ? '#58a6ff' : '#0969da',
+            backgroundColor: isDark ? 'rgba(56, 139, 253, 0.1)' : 'rgba(9, 105, 218, 0.08)',
             padding: '2px 7px',
             borderRadius: 4,
-            border: '1px solid rgba(56, 139, 253, 0.25)',
+            border: `1px solid ${isDark ? 'rgba(56, 139, 253, 0.25)' : 'rgba(9, 105, 218, 0.25)'}`,
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
           }}>
             {options.maxContextTokens === 1000000 ? '1M' : options.maxContextTokens > 0 ? `${options.maxContextTokens / 1000}K` : 'No Limit'}
@@ -92,17 +92,17 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
 
           {/* ── TARGET LLM CONTEXT LIMIT SLIDER ── */}
           <div style={{
-            backgroundColor: 'rgba(13, 17, 23, 0.6)',
+            backgroundColor: isDark ? 'rgba(13, 17, 23, 0.6)' : 'rgba(255, 255, 255, 0.8)',
             padding: '10px 12px',
             borderRadius: 8,
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.05)' : colors.border}`
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 11.5, fontWeight: '700', color: colors.text }}>
                   Target LLM Context Limit
                 </span>
-                <span style={{ fontSize: 10, color: '#8b949e' }}>
+                <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#57606a' }}>
                   (Chunking threshold)
                 </span>
               </div>
@@ -204,12 +204,12 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
               display: 'flex',
               flexDirection: 'column',
               gap: 4,
-              backgroundColor: 'rgba(13, 17, 23, 0.4)',
+              backgroundColor: isDark ? 'rgba(13, 17, 23, 0.4)' : 'rgba(255, 255, 255, 0.8)',
               padding: '8px 12px',
               borderRadius: 8,
-              border: '1px solid rgba(255, 255, 255, 0.04)'
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.04)' : colors.border}`
             }}>
-              <span style={{ fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, color: '#8b949e', marginBottom: 2 }}>
+              <span style={{ fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, color: isDark ? '#8b949e' : '#57606a', marginBottom: 2 }}>
                 Token Compression
               </span>
               <Checkbox
@@ -229,16 +229,16 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
               display: 'flex',
               flexDirection: 'column',
               gap: 6,
-              backgroundColor: 'rgba(13, 17, 23, 0.4)',
+              backgroundColor: isDark ? 'rgba(13, 17, 23, 0.4)' : 'rgba(255, 255, 255, 0.8)',
               padding: '8px 12px',
               borderRadius: 8,
-              border: '1px solid rgba(255, 255, 255, 0.04)'
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.04)' : colors.border}`
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, color: '#8b949e' }}>
+                <span style={{ fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, color: isDark ? '#8b949e' : '#57606a' }}>
                   Max File Limit
                 </span>
-                <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#c9d1d9', fontWeight: 600 }}>
+                <span style={{ fontSize: 11, fontFamily: 'monospace', color: colors.text, fontWeight: 600 }}>
                   {options.maxFileSize} KB
                 </span>
               </div>
@@ -247,7 +247,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                 style={{
                   width: '100%',
                   boxSizing: 'border-box',
-                  backgroundColor: '#0d1117',
+                  backgroundColor: colors.surface,
                   color: colors.text,
                   border: `1px solid ${colors.border}`,
                   borderRadius: 6,
@@ -268,7 +268,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
               <span style={{ fontSize: 11, fontWeight: '700', color: colors.text }}>
                 Excluded Folders & Patterns
               </span>
-              <span style={{ fontSize: 10.5, color: '#8b949e' }}>
+              <span style={{ fontSize: 10.5, color: isDark ? '#8b949e' : '#57606a' }}>
                 Type and hit Enter or comma to add
               </span>
             </div>

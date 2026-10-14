@@ -1,0 +1,39 @@
+{
+  "$schema": "https://agenticresourcediscovery.org/schemas/v1/ai-catalog.json",
+  "name": "repointxt",
+  "version": "1.0.0",
+  "description": "100% Client-side GitHub and codebase context packer for AI models and LLM prompts.",
+  "homepage": "https://repointxt.corbit.tech",
+  "repository": "https://github.com/CorbitTechnologies/repointxt",
+  "provider": {
+    "name": "Corbit Technologies",
+    "url": "https://www.corbittechnologies.com"
+  },
+  "capabilities": [
+    {
+      "id": "github-ingest",
+      "type": "tool",
+      "name": "GitHub Repository Packer",
+      "description": "Ingest and decompress public or token-authorized private GitHub repositories into formatted LLM prompts with token boundaries.",
+      "urlPattern": "https://repointxt.corbit.tech/{owner}/{repo}"
+    },
+    {
+      "id": "local-folder-ingest",
+      "type": "tool",
+      "name": "Local Directory Packer",
+      "description": "Parse local folders via File System Access API in browser memory without network egress."
+    }
+  ],
+  "supportedFormats": [
+    "text/plain",
+    "text/markdown",
+    "application/xml"
+  ],
+  "targetContextWindows": [
+    32000,
+    128000,
+    200000,
+    1000000
+  ],
+  "license": "MIT"
+}

@@ -127,24 +127,27 @@ const SourceInputs: React.FC<SourceInputsProps> = ({
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative', zIndex: 1, marginTop: 2 }}>
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6, color: colors.textSecondary }}>Personal Access Token</span>
-            <span style={{ fontSize: 10, fontWeight: '700', backgroundColor: colors.surface, color: colors.textSecondary, padding: '1px 6px', borderRadius: 4, border: `1px solid ${colors.border}` }}>Optional for Public Repos</span>
+            <span style={{ fontSize: 10, fontWeight: '700', backgroundColor: colors.surface, color: colors.textSecondary, padding: '2px 6px', borderRadius: 4, border: `1px solid ${colors.border}` }}>Optional for Public Repos</span>
           </div>
           <a
             href="https://github.com/settings/tokens/new?description=repointxt%20Codebase%20Context%20Packer&scopes=repo"
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              gap: 5,
               textDecoration: 'none',
-              fontSize: 11,
+              fontSize: 11.5,
               color: colors.primary,
               fontWeight: '700',
+              padding: '6px 8px',
+              minHeight: 28,
+              borderRadius: 4,
             }}
           >
             <span>Generate Token</span>
@@ -160,12 +163,14 @@ const SourceInputs: React.FC<SourceInputsProps> = ({
             boxShadow: isTokenFocused ? `0 0 0 3px ${colors.primary}25` : 'none',
             color: colors.text,
             borderRadius: borderRadius.md,
-            padding: '7px 12px',
+            padding: '9px 12px',
+            minHeight: 40,
             borderWidth: 1,
             borderStyle: 'solid',
-            fontSize: 12.5,
+            fontSize: 13,
             fontWeight: '500',
-            outline: 'none'
+            outline: 'none',
+            marginTop: 2
           }}
           type="password"
           placeholder="ghp_... or github_pat_..."

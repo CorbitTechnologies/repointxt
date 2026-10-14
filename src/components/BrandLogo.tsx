@@ -1,5 +1,6 @@
 import React from 'react';
 import { trackCompanyOutbound } from '../services/firebase';
+import { useTheme } from '../hooks/useTheme';
 
 interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -7,8 +8,13 @@ interface BrandLogoProps {
 }
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', showTagline = false }) => {
+  const { colors, isDark } = useTheme();
   const iconSizes = { sm: 26, md: 34, lg: 44 };
   const fontSizes = { sm: 17, md: 22, lg: 28 };
+
+  const subtextColor = isDark ? '#8b949e' : '#57606a';
+  const logoTextColor = isDark ? '#f0f6fc' : '#1f2328';
+  const accentColor = isDark ? '#38bdf8' : '#0969da';
 
   return (
     <div style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15, userSelect: 'none' }}>
@@ -16,10 +22,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', showTagline =
           fontSize: fontSizes[size],
           fontWeight: 900,
           letterSpacing: '-0.8px',
-          color: '#f0f6fc',
+          color: logoTextColor,
           fontFamily: 'system-ui, -apple-system, sans-serif'
         }}>
-          repoin<span style={{ color: '#38bdf8' }}>t</span>xt
+          repoin<span style={{ color: accentColor }}>t</span>xt
         </span>
 
         <a
@@ -31,7 +37,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', showTagline =
             fontSize: size === 'sm' ? '10px' : '11px',
             fontWeight: 600,
             letterSpacing: '0.3px',
-            color: '#8b949e',
+            color: subtextColor,
             marginTop: 1,
             textDecoration: 'none',
             display: 'inline-flex',
@@ -39,8 +45,8 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', showTagline =
             gap: 2,
             transition: 'color 0.15s ease'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#38bdf8')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#8b949e')}
+          onMouseEnter={(e) => (e.currentTarget.style.color = accentColor)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = subtextColor)}
           title="Visit Corbit Technologies"
         >
           <span>by corbit technologies</span>
@@ -48,7 +54,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', showTagline =
         </a>
 
         {showTagline && (
-          <span style={{ fontSize: '11px', color: '#8b949e', marginTop: 4, fontWeight: 500 }}>
+          <span style={{ fontSize: '11px', color: subtextColor, marginTop: 4, fontWeight: 500 }}>
             Codebase context packer for AI engineers
           </span>
         )}

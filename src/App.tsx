@@ -205,25 +205,25 @@ export default function App() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-                color: '#f0f6fc',
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+                color: isDark ? '#f0f6fc' : '#1f2328',
                 padding: '5px 10px',
                 borderRadius: 20,
                 textDecoration: 'none',
                 fontSize: 12,
                 fontWeight: 600,
                 letterSpacing: '-0.2px',
-                border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'}`,
+                border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.15)'}`,
                 transition: 'all 0.15s ease',
               }}
               className="github-nav-link"
               title="Support open source — Star repointxt on GitHub"
             >
-              <Icon name="github-fill" size={15} color="#f0f6fc" />
+              <Icon name="github-fill" size={15} color={isDark ? '#f0f6fc' : '#1f2328'} />
               <span style={{
                 fontSize: 12,
                 fontWeight: 600,
-                color: '#f0f6fc',
+                color: isDark ? '#f0f6fc' : '#1f2328',
                 fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif'
               }}>
                 Star
@@ -231,8 +231,8 @@ export default function App() {
               <span style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: colors.primary,
-                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(14, 165, 233, 0.12)',
+                color: isDark ? '#38bdf8' : '#0969da',
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(9, 105, 218, 0.1)',
                 padding: '1px 6px',
                 borderRadius: 10,
                 marginLeft: 2
@@ -250,7 +250,7 @@ export default function App() {
           <h1 style={{ fontSize: isMobile ? 20 : 25, fontWeight: '900', margin: '0 0 4px 0', color: colors.text, letterSpacing: '-0.6px', lineHeight: 1.15 }}>
             Pack Codebase into Pure LLM Signal
           </h1>
-          <p style={{ fontSize: 13, color: colors.textSecondary, margin: '0 auto 10px', maxWidth: 580, lineHeight: 1.4 }}>
+          <p style={{ fontSize: 13, color: isDark ? '#8b949e' : '#57606a', margin: '0 auto 10px', maxWidth: 580, lineHeight: 1.4 }}>
             From repository to token-dense context in milliseconds. Stream ZIP archives in-memory, auto-select core monorepo paths, and pack for ChatGPT, Claude, and Gemini.
           </p>
 
@@ -259,15 +259,15 @@ export default function App() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            padding: '3px 10px',
+            padding: '4px 12px',
             borderRadius: 20,
-            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : 'rgba(14, 165, 233, 0.08)',
-            border: `1px solid ${isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(14, 165, 233, 0.25)'}`,
+            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : 'rgba(9, 105, 218, 0.08)',
+            border: `1px solid ${isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(9, 105, 218, 0.25)'}`,
             fontSize: 11.5,
             fontWeight: 600,
-            color: isDark ? '#7dd3fc' : '#0284c7'
+            color: isDark ? '#7dd3fc' : '#0969da'
           }}>
-            <Icon name="shield-check" size={13} color={isDark ? '#38bdf8' : '#0284c7'} />
+            <Icon name="shield-check" size={13} color={isDark ? '#38bdf8' : '#0969da'} />
             <span>100% Client-Side &amp; Private — Zero servers, in-browser parsing. Code never leaves your machine.</span>
           </div>
         </div>
@@ -417,7 +417,7 @@ export default function App() {
         justifyContent: 'center',
         alignItems: 'center'
       }}>
-        <div style={{ fontSize: 12.5, color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', justifyContent: 'center', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12.5, color: isDark ? '#8b949e' : '#57606a', display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', justifyContent: 'center', lineHeight: 1.5 }}>
           <span>In-browser privacy suite by</span>
           <a
             href="https://www.corbittechnologies.com/?utm_source=repointxt&utm_medium=footer&utm_campaign=brand_attribution"
@@ -425,10 +425,10 @@ export default function App() {
             rel="noopener noreferrer"
             onClick={() => trackCompanyOutbound('footer')}
             style={{
-              color: colors.primary,
+              color: isDark ? '#58a6ff' : '#0969da',
               fontWeight: 700,
               textDecoration: 'none',
-              borderBottom: `1px dashed ${colors.primary}80`,
+              borderBottom: `1px dashed ${isDark ? '#58a6ff80' : '#0969da80'}`,
               paddingBottom: 1
             }}
           >
@@ -440,13 +440,13 @@ export default function App() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              color: colors.textSecondary,
+              color: isDark ? '#8b949e' : '#57606a',
               textDecoration: 'none',
               fontWeight: 600,
               transition: 'color 0.15s ease'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = colors.primary)}
-            onMouseLeave={(e) => (e.currentTarget.style.color = colors.textSecondary)}
+            onMouseEnter={(e) => (e.currentTarget.style.color = isDark ? '#38bdf8' : '#0969da')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = isDark ? '#8b949e' : '#57606a')}
           >
             FileFryer (Files &amp; Media)
           </a>
@@ -457,7 +457,7 @@ export default function App() {
             rel="noopener noreferrer"
             onClick={() => trackGitHubOutbound('footer')}
             style={{
-              color: colors.primary,
+              color: isDark ? '#58a6ff' : '#0969da',
               fontWeight: 600,
               textDecoration: 'none',
               display: 'inline-flex',
