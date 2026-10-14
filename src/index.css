@@ -1,0 +1,187 @@
+:root {
+  --bg-app: #090d13;
+  --bg-card: #0e1117;
+  --bg-surface: #161b22;
+  --border: #21262d;
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --primary: #1f6feb;
+  --primary-hover: #388bfd;
+  --success: #238636;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.btn-secondary:hover { border-color: var(--text-muted); }
+
+.github-nav-link:hover {
+  opacity: 0.75;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12.5px;
+  background: transparent;
+  transition: background-color 0.12s ease;
+  contain: layout style paint;
+}
+.tree-row:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Prevent iOS auto-zoom on input focus */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+@media (min-width: 768px) {
+  input, select, textarea {
+    font-size: 13px !important;
+  }
+}
+
+/* Touch-friendly target wrapper */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Smooth scrolling for internal tree scroll panels */
+.tree-container {
+  overscroll-behavior: auto;
+  scroll-behavior: smooth;
+}
+
+/* Styled range slider */
+.context-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 4px;
+  background: #21262d;
+  outline: none;
+  cursor: pointer;
+  margin: 10px 0 6px;
+  transition: background 0.15s ease;
+}
+.context-slider:hover {
+  background: #30363d;
+}
+.context-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #58a6ff;
+  cursor: pointer;
+  box-shadow: 0 0 0 2.5px #0d1117, 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.context-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+  background: #79c0ff;
+}
+.context-slider::-moz-range-thumb {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #58a6ff;
+  border: 2.5px solid #0d1117;
+  cursor: pointer;
+}
+
+/* Mobile responsive container adjustments */
+@media (max-width: 640px) {
+  .card {
+    padding: 12px !important;
+    border-radius: 8px !important;
+  }
+  
+  .tree-row {
+    padding: 2px 8px !important;
+  }
+  
+  .mobile-col {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+}
+
+/* Smooth glow animation when output renders */
+@keyframes outputFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.output-card-glow {
+  animation: outputFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

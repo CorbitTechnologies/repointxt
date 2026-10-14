@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://repointxt.corbit.tech/sitemap.xml

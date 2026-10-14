@@ -1,0 +1,113 @@
+export const DEFAULT_IGNORE_PATTERNS = [
+  'node_modules',
+  '.git',
+  '.turbo',
+  '.cache',
+
+  // Security Credentials & Environment Secrets
+  '.env*',
+  '*.pem',
+  '*.key',
+  '*.cert',
+  '*.crt',
+  '*.pfx',
+  '*.p12',
+  '.npmrc',
+  '.yarnrc',
+  'id_rsa*',
+  'id_ed25519*',
+
+  // Flutter / Mobile Platform Wrappers & Build Caches (keep configuration/manifests, ignore native machine code and generated artifacts)
+  '*.g.dart',
+  '*.freezed.dart',
+  '*.mocks.dart',
+  '*.config.dart',
+  '.dart_tool',
+  'ios/Pods',
+  'ios/.symlinks',
+  'ios/Runner.xcworkspace',
+  'ios/Runner.xcodeproj/project.xcworkspace',
+  'ios/Flutter/Flutter.podspec',
+  'ios/Flutter/Generated.xcconfig',
+  'android/.gradle',
+  'android/app/build',
+  'android/local.properties',
+  'android/gradle',
+  'android/gradlew',
+  'android/gradlew.bat',
+  '.flutter-plugins',
+  '.flutter-plugins-dependencies',
+
+  // Framework Caches
+  '.next',
+  '.nuxt',
+  '.svelte-kit',
+  '.vercel',
+  '.expo',
+  '.expo-shared',
+
+  // Firebase / Supabase Noise
+  '.firebaserc',
+  'firestore.indexes.json',
+  'firebase-debug.log',
+  'firestore-debug.log',
+
+  // Lockfiles & Binaries
+  'pnpm-lock.yaml',
+  'package-lock.json',
+  'yarn.lock',
+  'bun.lockb',
+  'Cargo.lock',
+  'pubspec.lock',
+  'poetry.lock',
+  'Gemfile.lock',
+  'composer.lock',
+  'dist',
+  'build',
+  'target',
+  'vendor',
+  'bin',
+  'obj',
+  'coverage',
+  'out',
+  '.vscode',
+  '.idea',
+  '*.log',
+  '.DS_Store',
+  'Thumbs.db',
+  '*.min.js',
+  '*.min.css',
+  '*.map',
+  '*.pyc',
+  '__pycache__',
+  '*.ico',
+  '*.jpg',
+  '*.jpeg',
+  '*.png',
+  '*.gif',
+  '*.svg',
+  '*.webp',
+  '*.eot',
+  '*.ttf',
+  '*.woff',
+  '*.woff2',
+  '*.mp4',
+  '*.zip',
+  '*.tar.gz',
+  '*.pdf'
+];
+
+export const LLM_CONTEXT_LIMITS = [
+  { label: '1M (Gemini 1.5 Pro / 2.0 Flash - Default)', value: 1000000 },
+  { label: '200K (Claude 3.5 Sonnet / Opus)', value: 200000 },
+  { label: '128K (GPT-4o / GPT-4o-mini)', value: 128000 },
+  { label: '32K (GPT-4)', value: 32000 },
+  { label: 'Auto (No Limit)', value: 0 }
+];
+
+export const NON_CODE_EXTENSIONS = new Set([
+  '.md', '.txt', '.rst', '.svg', '.png', '.jpg', '.jpeg', '.gif',
+  '.pdf', '.doc', '.docx', '.css', '.scss', '.sass', '.less',
+  '.json', '.yaml', '.yml', '.toml', '.xml', '.env', '.example',
+  '.lock', '.map', '.html'
+]);

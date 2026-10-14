@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#090d13" />
+
+  <!-- Favicons & App Icons -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+  <!-- Primary SEO Meta Tags -->
+  <title>repointxt by Corbit Technologies | GitHub & Codebase to LLM Prompt Generator (repo2txt Alternative)</title>
+  <meta name="title" content="repointxt by Corbit Technologies | GitHub & Codebase to LLM Prompt Generator (repo2txt Alternative)" />
+  <meta name="description" content="Pack GitHub repositories and codebases into token-optimized prompt bundles for Claude 3.5 Sonnet (200k), Gemini 1.5 Pro (1M), and ChatGPT (128k). 100% client-side, private repo2txt alternative engineered by Corbit Technologies." />
+  <meta name="keywords" content="repo2txt alternative, repo to txt, convert github repo to prompt, github to chatgpt context, pack codebase for claude, claude context window, gemini token packer, repointxt, corbit technologies, gitingest alternative, turborepo llm prompt, flutter repo to prompt, private codebase to llm" />
+  <meta name="author" content="Corbit Technologies" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <link rel="canonical" href="https://repointxt.corbit.tech/" />
+
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://repointxt.corbit.tech/" />
+  <meta property="og:title" content="repointxt by Corbit Technologies | 100% Client-Side Codebase to LLM Prompt Packer" />
+  <meta property="og:description" content="Convert GitHub repositories and local folders into token-optimized text for Claude, ChatGPT, and Gemini. 100% private, client-side, zero cloud retention. repo2txt alternative." />
+  <meta property="og:image" content="https://repointxt.corbit.tech/og-banner.png" />
+  <meta property="og:site_name" content="repointxt by Corbit Technologies" />
+
+  <!-- Twitter / X -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://repointxt.corbit.tech/" />
+  <meta property="twitter:title" content="repointxt by Corbit Technologies | Codebase to LLM Prompt Packer" />
+  <meta property="twitter:description" content="Pack entire codebases into token-optimized context for Claude, ChatGPT, and Gemini. 100% private & client-side." />
+  <meta property="twitter:image" content="https://repointxt.corbit.tech/og-banner.png" />
+  <meta name="twitter:creator" content="@CorbitTech" />
+
+  <!-- Schema.org JSON-LD: SoftwareApplication + Organization + FAQPage (Google Rich Snippets) -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.corbittechnologies.com/#organization",
+          "name": "Corbit Technologies",
+          "url": "https://www.corbittechnologies.com/",
+          "logo": "https://repointxt.corbit.tech/logo-192.png",
+          "description": "High-performance software and AI engineering company specializing in enterprise LLM architecture and developer tooling.",
+          "sameAs": [
+            "https://github.com/CorbitTechnologies",
+            "https://twitter.com/CorbitTech",
+            "https://corbit.tech"
+          ]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://repointxt.corbit.tech/#software",
+          "name": "repointxt",
+          "alternateName": ["repo in txt", "repo2txt client-side alternative", "repo to prompt"],
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Web Browser (Chrome, Firefox, Safari, Edge)",
+          "url": "https://repointxt.corbit.tech/",
+          "codeRepository": "https://github.com/CorbitTechnologies/repointxt",
+          "license": "https://github.com/CorbitTechnologies/repointxt/blob/main/LICENSE",
+          "programmingLanguage": ["TypeScript", "React"],
+          "description": "High-performance, 100% client-side developer tool by Corbit Technologies to convert GitHub repositories and local directories into token-optimized prompt bundles for Claude 3.5 Sonnet, Gemini 1.5 Pro, and GPT-4o.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "author": {
+            "@id": "https://www.corbittechnologies.com/#organization"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://repointxt.corbit.tech/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Is repointxt private and secure for proprietary codebases?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Unlike other tools that send your code through external backend proxies, repointxt runs 100% client-side in your browser memory. GitHub repositories are decompressed using in-memory JSZip, and local directories are parsed via the File System Access API. Zero code or credentials ever leave your machine."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How is repointxt different from repo2txt or gitingest?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "repointxt provides active token budgeting (sliders for 32k, 128k, 200k, and 1M tokens), intelligent multi-part chunking for Claude and Gemini, automatic stripping of SVG paths, legal licenses, and build boilerplate, plus native presets for Turborepo, Next.js, and Flutter monorepos—all completely client-side without server retention."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How do I pack a GitHub repository for Claude 3.5 Sonnet or Gemini 1.5 Pro?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Simply enter your GitHub repository URL (or append /owner/repo to repointxt.corbit.tech), select your target context window (e.g. 200k for Claude or 1M for Gemini), select the files you want to include, and click Generate. repointxt will automatically create token-bounded XML prompt blocks ready to paste directly into your AI chat."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  </script>
+
+  <style>
+   html, body {
+     margin: 0;
+     padding: 0;
+     background-color: #090d13;
+     color: #f0f6fc;
+     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+     -webkit-font-smoothing: antialiased;
+   }
+   ::-webkit-scrollbar { width: 6px; height: 6px; }
+   ::-webkit-scrollbar-track { background: transparent; }
+   ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+   ::-webkit-scrollbar-thumb:hover { background: #30363d; }
+  </style>
+ </head>
+ <body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+ </body>
+</html>
