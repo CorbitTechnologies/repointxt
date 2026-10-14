@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://repointxt.corbit.tech/sitemap.xml
+Agentmap: https://repointxt.corbit.tech/ai-catalog.json
