@@ -45,9 +45,9 @@ export const useTheme = () => {
         return {
             isDark,
             colors: {
-                primary: palette.primary,
-                primaryLight: palette.primaryLight,
-                primaryDark: palette.primaryDark,
+                primary: isDark ? '#388bfd' : '#0969da',
+                primaryLight: '#58a6ff',
+                primaryDark: isDark ? '#1f6feb' : '#0550ae',
                 secondary: palette.secondary,
                 success: palette.success,
                 warning: palette.warning,
