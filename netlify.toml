@@ -29,6 +29,11 @@
   status = 200
 
 [[redirects]]
+  from = "/.well-known/ai-catalog.json"
+  to = "/.well-known/ai-catalog.json"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

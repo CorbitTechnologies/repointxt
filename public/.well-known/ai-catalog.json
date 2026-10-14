@@ -1,0 +1,37 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Corbit Technologies",
+    "documentationUrl": "https://repointxt.corbit.tech",
+    "logoUrl": "https://repointxt.corbit.tech/logo-192.png"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:corbit.tech:repointxt:codebase-context-packer",
+      "displayName": "repointxt Codebase Context Packer",
+      "type": "text/html",
+      "url": "https://repointxt.corbit.tech",
+      "description": "100% Client-side GitHub and codebase context packer for AI models and LLM prompts.",
+      "version": "1.0.0",
+      "updatedAt": "2026-10-14T20:30:00Z",
+      "tags": [
+        "developer-tool",
+        "codebase-to-prompt",
+        "llm-context",
+        "github-ingest",
+        "claude",
+        "gemini"
+      ],
+      "capabilities": [
+        "GitHubRepositoryPacker",
+        "LocalDirectoryPacker",
+        "ContextBudgetOptimizer"
+      ],
+      "representativeQueries": [
+        "How do I pack a GitHub repository into an LLM prompt?",
+        "Convert codebase to Claude 3.5 Sonnet context",
+        "Ingest repository files for Gemini 1M context window"
+      ]
+    }
+  ]
+}

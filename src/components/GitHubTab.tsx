@@ -19,7 +19,7 @@ const GitHubTab: React.FC<any> = (props) => {
           style={{
             flex: props.isMobile ? 'none' : 2,
             width: props.isMobile ? '100%' : 'auto',
-            backgroundColor: colors.primary,
+            backgroundColor: colors.primaryButtonBg,
             borderRadius: borderRadius.md,
             padding: props.isMobile ? '10px 14px' : '9px 16px',
             border: 'none',
