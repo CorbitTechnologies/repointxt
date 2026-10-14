@@ -9,7 +9,7 @@
     {
       "identifier": "urn:air:corbit.tech:repointxt:codebase-context-packer",
       "displayName": "repointxt Codebase Context Packer",
-      "type": "text/html",
+      "type": "application/agent-card+json",
       "url": "https://repointxt.corbit.tech",
       "description": "100% Client-side GitHub and codebase context packer for AI models and LLM prompts.",
       "version": "1.0.0",
