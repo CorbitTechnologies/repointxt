@@ -1,39 +1,38 @@
 {
-  "$schema": "https://agenticresourcediscovery.org/schemas/v1/ai-catalog.json",
-  "name": "repointxt",
-  "version": "1.0.0",
-  "description": "100% Client-side GitHub and codebase context packer for AI models and LLM prompts.",
-  "homepage": "https://repointxt.corbit.tech",
-  "repository": "https://github.com/CorbitTechnologies/repointxt",
-  "provider": {
-    "name": "Corbit Technologies",
-    "url": "https://www.corbittechnologies.com"
+  "$schema": "https://raw.githubusercontent.com/ards-project/ard-spec/main/spec/schemas/ai-catalog.schema.json",
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Corbit Technologies",
+    "documentationUrl": "https://repointxt.corbit.tech",
+    "logoUrl": "https://repointxt.corbit.tech/logo-192.png"
   },
-  "capabilities": [
+  "entries": [
     {
-      "id": "github-ingest",
-      "type": "tool",
-      "name": "GitHub Repository Packer",
-      "description": "Ingest and decompress public or token-authorized private GitHub repositories into formatted LLM prompts with token boundaries.",
-      "urlPattern": "https://repointxt.corbit.tech/{owner}/{repo}"
-    },
-    {
-      "id": "local-folder-ingest",
-      "type": "tool",
-      "name": "Local Directory Packer",
-      "description": "Parse local folders via File System Access API in browser memory without network egress."
+      "identifier": "urn:air:corbit.tech:repointxt:codebase-context-packer",
+      "displayName": "repointxt Codebase Context Packer",
+      "type": "text/html",
+      "url": "https://repointxt.corbit.tech",
+      "description": "100% Client-side GitHub and codebase context packer for AI models and LLM prompts.",
+      "version": "1.0.0",
+      "updatedAt": "2026-10-14T20:30:00Z",
+      "tags": [
+        "developer-tool",
+        "codebase-to-prompt",
+        "llm-context",
+        "github-ingest",
+        "claude",
+        "gemini"
+      ],
+      "capabilities": [
+        "GitHubRepositoryPacker",
+        "LocalDirectoryPacker",
+        "ContextBudgetOptimizer"
+      ],
+      "representativeQueries": [
+        "How do I pack a GitHub repository into an LLM prompt?",
+        "Convert codebase to Claude 3.5 Sonnet context",
+        "Ingest repository files for Gemini 1M context window"
+      ]
     }
-  ],
-  "supportedFormats": [
-    "text/plain",
-    "text/markdown",
-    "application/xml"
-  ],
-  "targetContextWindows": [
-    32000,
-    128000,
-    200000,
-    1000000
-  ],
-  "license": "MIT"
+  ]
 }
