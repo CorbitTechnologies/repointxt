@@ -9,14 +9,14 @@ import {
 import { optimizeContent, detectBoundary } from '../utils/textOptimizer';
 import { DEFAULT_IGNORE_PATTERNS } from '../utils/constants';
 import { saveGitHubToken, loadGitHubToken, saveUrlToHistory, loadUrlHistory, saveAppSettings, loadAppSettings } from '../utils/storage';
-import { parseGitHubSlug, fetchTreeData, fetchFileContent, clearRepoZipCache, clearAllRepoZipCaches, sanitizeArchivePath } from '../services/githubService';
+import { parseGitHubSlug, fetchTreeData, fetchRepoZipball, fetchFileContent, clearRepoZipCache, clearAllRepoZipCaches, sanitizeArchivePath } from '../services/githubService';
 import { trackEvent, measurePerformance, logCrash } from '../services/firebase';
 import { Source, FileItem, PromptBatch, ProcessingOptionsState } from '../types';
 
 const defaultOptions: ProcessingOptionsState = {
-  removeComments: true,
+  removeComments: false,
   removeExtraWhitespace: true,
-  maxContextTokens: 1000000,
+  maxContextTokens: 200000,
   maxFileSize: 250,
   ignorePatterns: DEFAULT_IGNORE_PATTERNS.join(', '),
 };
@@ -71,6 +71,20 @@ export const useRepoManager = () => {
 
   const blobUrlsRef = useRef<string[]>([]);
   const isFirstRender = useRef(true);
+  const packWorkerRef = useRef<Worker | null>(null);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.Worker) {
+        packWorkerRef.current = new Worker(new URL('../workers/packWorker.ts', import.meta.url), { type: 'module' });
+      }
+    } catch (e) {
+      console.warn('Worker initialization failed, fallback to main thread:', e);
+    }
+    return () => {
+      packWorkerRef.current?.terminate();
+    };
+  }, []);
 
   const updateOption = <K extends keyof ProcessingOptionsState>(key: K, value: ProcessingOptionsState[K]) => {
     setOptions(prev => ({ ...prev, [key]: value }));
@@ -117,10 +131,6 @@ export const useRepoManager = () => {
     };
   };
 
-  const sourceTreesKey = useMemo(() => {
-    return sources.map(s => `${s.id}:${s.name}:${s.tree.length}`).join('|');
-  }, [sources]);
-
   const treeData = useMemo(() => {
     const multi = sources.length > 1;
     const allItems: FileItem[] = [];
@@ -130,7 +140,7 @@ export const useRepoManager = () => {
       });
     });
     return allItems.length > 0 ? { tree: allItems } : null;
-  }, [sourceTreesKey, sources.length]);
+  }, [sources]);
 
   const selectedFiles = useMemo(() => {
     const multi = sources.length > 1;
@@ -187,14 +197,28 @@ export const useRepoManager = () => {
     try {
       const { owner, repo } = parseGitHubSlug(urlToFetch);
       const { branch: activeBranch, tree } = await measurePerformance('github_repo_ingest', async () => {
-        return await fetchTreeData(
-          owner,
-          repo,
-          githubBranch.trim(),
-          githubToken,
-          (rem, lim) => setGithubRateLimit({ remaining: rem, limit: lim }),
-          targetSourceId
-        );
+        try {
+          setLoadingMessage('Streaming repository archive...');
+          return await fetchRepoZipball(
+            owner,
+            repo,
+            githubBranch.trim(),
+            githubToken,
+            (rem, lim) => setGithubRateLimit({ remaining: rem, limit: lim }),
+            targetSourceId
+          );
+        } catch (zipErr) {
+          console.warn('Zipball ingestion failed, falling back to REST Git Tree API:', zipErr);
+          setLoadingMessage('Scanning repository tree...');
+          return await fetchTreeData(
+            owner,
+            repo,
+            githubBranch.trim(),
+            githubToken,
+            (rem, lim) => setGithubRateLimit({ remaining: rem, limit: lim }),
+            targetSourceId
+          );
+        }
       });
 
       const maxBytes = Number(options.maxFileSize) * 1024;
@@ -225,6 +249,15 @@ export const useRepoManager = () => {
       saveUrlToHistory(urlToFetch);
       setUrlHistory(loadUrlHistory());
       trackEvent('scan_repo_success', { fileCount: validTreeItems.length });
+
+      // Synchronize browser URL bar with pushState for history & deep linking
+      if (typeof window !== 'undefined' && !isAdding) {
+        const slug = `${owner}/${repo}`;
+        if (!window.location.pathname.includes(slug)) {
+          const currentParams = window.location.search;
+          window.history.pushState({ slug }, '', `/${slug}${currentParams}`);
+        }
+      }
     } catch (e: any) {
       logCrash(e, false, { context: 'fetchGitHubRepo' });
       setErrorMessage(e instanceof Error ? e.message : String(e));
@@ -237,14 +270,13 @@ export const useRepoManager = () => {
   // Direct Hook Auto-Ingestion for URL slug (e.g. repointxt.corbit.tech/owner/repo) and ?model= parameter
   const autoIngestAttemptedRef = useRef(false);
 
-  useEffect(() => {
-    if (typeof window === 'undefined' || autoIngestAttemptedRef.current) return;
-    autoIngestAttemptedRef.current = true;
-
+  const parseAndIngestUrl = useCallback((isInitial = false) => {
+    if (typeof window === 'undefined') return;
     try {
-      // 1. Handle Query Parameters (e.g. ?model=claude or ?model=gemini)
+      // 1. Handle Query Parameters (e.g. ?model=claude or ?model=gemini, &stripComments=)
       const urlParams = new URLSearchParams(window.location.search);
       const targetModel = urlParams.get('model')?.toLowerCase();
+      const stripCommentsParam = urlParams.get('stripComments');
 
       if (targetModel === 'claude' || targetModel === 'claude3' || targetModel === 'claude-3-5') {
         setOptions(prev => ({ ...prev, maxContextTokens: 200000 }));
@@ -254,12 +286,11 @@ export const useRepoManager = () => {
         setOptions(prev => ({ ...prev, maxContextTokens: 128000 }));
       }
 
+      if (stripCommentsParam !== null) {
+        setOptions(prev => ({ ...prev, removeComments: stripCommentsParam === 'true' }));
+      }
+
       // 2. Handle URL Slug Ingestion:
-      // Accepts:
-      // - /owner/repo
-      // - /github.com/owner/repo
-      // - /https://github.com/owner/repo
-      // - /http://github.com/owner/repo
       const rawPath = decodeURIComponent(window.location.pathname);
       const cleanPath = rawPath
         .replace(/^\/+(https?:\/+(www\.)?)?/i, '')
@@ -279,9 +310,24 @@ export const useRepoManager = () => {
         setGithubUrl(slug);
         setActiveTab('github');
         fetchGitHubRepo(false, slug);
+      } else if (!isInitial && cleanPath === '') {
+        setSources([]);
+        setOutputBatches([]);
       }
     } catch (_) {}
   }, [fetchGitHubRepo]);
+
+  useEffect(() => {
+    if (autoIngestAttemptedRef.current) return;
+    autoIngestAttemptedRef.current = true;
+    parseAndIngestUrl(true);
+
+    const handlePopState = () => {
+      parseAndIngestUrl(false);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [parseAndIngestUrl]);
 
   const pickLocalDirectory = useCallback(async (isAdding = false) => {
     if (!(window as any).showDirectoryPicker) {
@@ -477,6 +523,57 @@ export const useRepoManager = () => {
 
       const topologyXml = buildTopologySummary(allFiles);
 
+      // ASCII Visual Directory Tree Generator
+      const buildAsciiDirectoryTree = (files: FileItem[]): string => {
+        interface TreeNode {
+          dirs: Map<string, TreeNode>;
+          files: string[];
+        }
+        const root: TreeNode = { dirs: new Map(), files: [] };
+
+        for (const f of files) {
+          const parts = f.path.split('/');
+          let curr = root;
+          for (let i = 0; i < parts.length - 1; i++) {
+            const part = parts[i];
+            if (!curr.dirs.has(part)) {
+              curr.dirs.set(part, { dirs: new Map(), files: [] });
+            }
+            curr = curr.dirs.get(part)!;
+          }
+          curr.files.push(parts[parts.length - 1]);
+        }
+
+        const lines: string[] = [];
+        const renderNode = (node: TreeNode, prefix: string) => {
+          const dirEntries = Array.from(node.dirs.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+          const sortedFiles = [...node.files].sort((a, b) => a.localeCompare(b));
+          const totalEntries = dirEntries.length + sortedFiles.length;
+          let count = 0;
+
+          for (const [dirName, childNode] of dirEntries) {
+            count++;
+            const isLast = count === totalEntries;
+            const branch = isLast ? '└── ' : '├── ';
+            lines.push(`${prefix}${branch}${dirName}/`);
+            const nextPrefix = prefix + (isLast ? '    ' : '│   ');
+            renderNode(childNode, nextPrefix);
+          }
+
+          for (const fileName of sortedFiles) {
+            count++;
+            const isLast = count === totalEntries;
+            const branch = isLast ? '└── ' : '├── ';
+            lines.push(`${prefix}${branch}${fileName}`);
+          }
+        };
+
+        renderNode(root, '');
+        return lines.join('\n');
+      };
+
+      const asciiTree = buildAsciiDirectoryTree(allFiles);
+
       // Build File Tree Manifest string for the top of the prompt
       const treeManifest = allFiles
         .map(f => `    • ${f.path} (~${Math.ceil((f.size || 0) / 3.8)} tokens)`)
@@ -499,6 +596,9 @@ export const useRepoManager = () => {
         parts.push(`  <overview>`);
         parts.push(topologyXml);
         parts.push(`    <selected_files_count>${allFiles.length}</selected_files_count>`);
+        if (asciiTree) {
+          parts.push(`    <directory_structure>\n${asciiTree}\n    </directory_structure>`);
+        }
         parts.push(`    <manifest>\n${treeManifest}\n    </manifest>`);
 
         if (isMultiPart) {
@@ -557,7 +657,7 @@ export const useRepoManager = () => {
             }
 
             // Escape any ]]> occurrence within CDATA to prevent premature tag closing
-            const safeContent = opt.replace(/]]>/g, ']]]]><![CDATA[> >');
+            const safeContent = opt.replace(/]]>/g, ']]]]><![CDATA[>');
             return `  <file path="${f.path}"${boundaryAttr} language="${ext}" tokens="~${estTokens}">\n<![CDATA[\n${safeContent}\n]]>\n  </file>`;
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);

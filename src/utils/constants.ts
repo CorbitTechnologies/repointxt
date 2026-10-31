@@ -6,6 +6,8 @@ export const DEFAULT_IGNORE_PATTERNS = [
 
   // Security Credentials & Environment Secrets
   '.env*',
+  '*.env.local',
+  '*.env.*.local',
   '*.pem',
   '*.key',
   '*.cert',
@@ -79,7 +81,18 @@ export const DEFAULT_IGNORE_PATTERNS = [
   '*.min.css',
   '*.map',
   '*.pyc',
+  '*.pyo',
   '__pycache__',
+  '*.wasm',
+  '*.dylib',
+  '*.so',
+  '*.dll',
+  '*.class',
+  '*.exe',
+  '*.dex',
+  '*.aar',
+  '*.ipa',
+  '*.apk',
   '*.ico',
   '*.jpg',
   '*.jpeg',
@@ -98,8 +111,8 @@ export const DEFAULT_IGNORE_PATTERNS = [
 ];
 
 export const LLM_CONTEXT_LIMITS = [
-  { label: '1M (Gemini 1.5 Pro / 2.0 Flash - Default)', value: 1000000 },
-  { label: '200K (Claude 3.5 Sonnet / Opus)', value: 200000 },
+  { label: '200K (Claude 3.5 Sonnet / Opus - Default)', value: 200000 },
+  { label: '1M (Gemini 1.5 Pro / 2.0 Flash)', value: 1000000 },
   { label: '128K (GPT-4o / GPT-4o-mini)', value: 128000 },
   { label: '32K (GPT-4)', value: 32000 },
   { label: 'Auto (No Limit)', value: 0 }

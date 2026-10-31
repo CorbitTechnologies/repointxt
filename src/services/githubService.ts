@@ -40,6 +40,14 @@ export const clearAllRepoZipCaches = () => {
   repoZipCache.clear();
 };
 
+export const setRepoZip = (sourceId: string, zip: JSZip, rootPrefix: string = '') => {
+  repoZipCache.set(sourceId, { zip, rootPrefix });
+};
+
+export const hasRepoZip = (sourceId: string): boolean => {
+  return repoZipCache.has(sourceId);
+};
+
 export const sanitizeArchivePath = (path: string): string => {
   if (!path) return '';
   return path
@@ -116,6 +124,84 @@ async function parseGitHubApiError(res: Response, hasToken: boolean): Promise<ne
 
   throw new Error(serverMsg ? `GitHub error: ${serverMsg} (HTTP ${status})` : `Failed to load repository (HTTP ${status})`);
 }
+
+/**
+ * Attempts to download the repository as a single zipball and extract it into repoZipCache.
+ * Returns { branch, tree } if successful, or throws if failed / unsupported.
+ */
+export const fetchRepoZipball = async (
+  owner: string,
+  repo: string,
+  branch: string,
+  token?: string,
+  onRateLimit?: (remaining: number, limit: number) => void,
+  sourceId?: string
+): Promise<{ branch: string; tree: any[] }> => {
+  const hasToken = Boolean(token && token.trim());
+  const authHeaders = getAuthHeaders(token);
+
+  let activeBranch = branch;
+  if (!activeBranch) {
+    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: authHeaders });
+    if (onRateLimit) readRateLimit(repoRes, onRateLimit);
+    if (!repoRes.ok) {
+      await parseGitHubApiError(repoRes, hasToken);
+    }
+    const data = await repoRes.json();
+    activeBranch = data.default_branch;
+  }
+
+  const zipUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${encodeURIComponent(activeBranch)}`;
+  const zipRes = await fetch(zipUrl, { headers: authHeaders });
+  if (onRateLimit) readRateLimit(zipRes, onRateLimit);
+  if (!zipRes.ok) {
+    await parseGitHubApiError(zipRes, hasToken);
+  }
+
+  const blob = await zipRes.blob();
+  const zip = await JSZip.loadAsync(blob);
+
+  // Find root directory prefix created by GitHub zipball (e.g. "owner-repo-sha/")
+  let rootPrefix = '';
+  for (const relativePath of Object.keys(zip.files)) {
+    const slashIdx = relativePath.indexOf('/');
+    if (slashIdx !== -1) {
+      rootPrefix = relativePath.slice(0, slashIdx + 1);
+      break;
+    }
+  }
+
+  const tree: any[] = [];
+  const entries = Object.keys(zip.files);
+  for (const fullPath of entries) {
+    const entry = zip.files[fullPath];
+    if (entry.dir) continue;
+
+    const relPath = rootPrefix && fullPath.startsWith(rootPrefix)
+      ? fullPath.slice(rootPrefix.length)
+      : fullPath;
+
+    const cleanPath = sanitizeArchivePath(relPath);
+    if (!cleanPath) continue;
+
+    // Estimate or get uncompressed size
+    const uncompressedSize = (entry as any)._data?.uncompressedSize || 1024;
+
+    tree.push({
+      path: cleanPath,
+      type: 'blob',
+      size: uncompressedSize,
+      sha: `zip-${cleanPath}`,
+      sourceId,
+    });
+  }
+
+  if (sourceId) {
+    setRepoZip(sourceId, zip, rootPrefix);
+  }
+
+  return { branch: activeBranch, tree };
+};
 
 export const fetchTreeData = async (
   owner: string,

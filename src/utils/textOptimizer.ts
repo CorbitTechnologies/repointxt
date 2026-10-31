@@ -17,15 +17,23 @@ export const stripComments = (content: string, filePath: string): string => {
   const ext = filePath.includes('.') ? filePath.slice(filePath.lastIndexOf('.')).toLowerCase() : '';
 
   if (JS_FAMILY.has(ext)) {
-    // Matches string literals first to avoid replacing comment characters inside strings
+    // Matches string literals and regex literals first to avoid replacing comments inside strings or regexes (e.g. /https:\/\//)
     return content.replace(
-      /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`)|\/\*[\s\S]*?\*\/|(?:\s|^)\/\/(?!\/)[^\r\n]*/g,
-      (match, str) => (str ? str : '')
+      /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`|(?<![a-zA-Z0-9_$)\s])\/(?![/*])(?:\\.|[^/\n\\])+\/[gimsuy]*)|\/\*[\s\S]*?\*\/|(?:\s|^|\b)\/\/(?!\/)[^\r\n]*/g,
+      (_match, preserved) => (preserved !== undefined ? preserved : '')
     );
   }
 
   if (HASH_FAMILY.has(ext)) {
-    let text = content.replace(/(^#!.*$)|((^|[^\S\r\n])#[^\r\n]*)/gm, (_m, shebang) => (shebang ? shebang : ''));
+    // Preserve string literals in YAML/TOML/Python (e.g. hex colors "#ffffff" or quoted text)
+    let text = content.replace(
+      /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*')|(^#!.*$)|((^|[^\S\r\n])#[^\r\n]*)/gm,
+      (_match, preservedStr, shebang) => {
+        if (preservedStr) return preservedStr;
+        if (shebang) return shebang;
+        return '';
+      }
+    );
     if (ext === '.py') {
       text = text.replace(PATTERNS.pyDocDouble, '').replace(PATTERNS.pyDocSingle, '');
     }
