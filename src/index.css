@@ -10,6 +10,12 @@
   --success: #238636;
 }
 
+/* Prevent accidental horizontal scrolling on mobile */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -167,6 +173,24 @@ input, select, textarea {
   
   .mobile-full-width {
     width: 100% !important;
+  }
+}
+
+/* Ensure minimum touch targets on mobile (WCAG 2.1 touch standards) */
+@media (max-width: 767px) {
+  button, .btn-secondary, .btn-primary {
+    touch-action: manipulation;
+  }
+
+  /* Make tree rows easier to tap on mobile */
+  .tree-row {
+    min-height: 32px !important;
+  }
+
+  /* Compact typography on small screens */
+  h1 {
+    font-size: 19px !important;
+    line-height: 1.25 !important;
   }
 }
 
