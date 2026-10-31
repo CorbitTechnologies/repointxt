@@ -60,6 +60,7 @@ export const SelectionComponent: React.FC<Props> = ({
   const [filterQuery, setFilterQuery] = useState('');
   // All folders collapsed by default
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => getAllFolderKeys(tree));
+  const [focusedIndex, setFocusedIndex] = useState<number>(0);
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [activePreset, setActivePreset] = useState<'core' | 'all' | 'none' | null>('core');
 
@@ -245,9 +246,10 @@ export const SelectionComponent: React.FC<Props> = ({
     return Math.ceil(totalSelectedBytes / 3.8);
   }, [totalSelectedBytes]);
 
-  const tokenLimit = maxContextTokens || 1000000;
+  const tokenLimit = maxContextTokens || 200000;
   const tokenPercentage = Math.min(100, Math.round((totalEstimatedTokens / tokenLimit) * 100));
-  const isTokenWarning = tokenPercentage > 80;
+  const isTokenWarning = totalEstimatedTokens > tokenLimit * 0.8;
+  const isTokenExceeded = totalEstimatedTokens > tokenLimit;
 
   const [justGenerated, setJustGenerated] = useState(false);
   const [lastElapsedMs, setLastElapsedMs] = useState<number | null>(null);
@@ -388,6 +390,57 @@ export const SelectionComponent: React.FC<Props> = ({
     overscan: 10,
   });
 
+  // Tree keyboard navigation: ArrowUp, ArrowDown, ArrowRight (expand), ArrowLeft (collapse), Space (toggle)
+  const handleTreeKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (visibleRows.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedIndex(prev => {
+        const next = Math.min(prev + 1, visibleRows.length - 1);
+        rowVirtualizer.scrollToIndex(next);
+        return next;
+      });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedIndex(prev => {
+        const next = Math.max(prev - 1, 0);
+        rowVirtualizer.scrollToIndex(next);
+        return next;
+      });
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const currRow = visibleRows[focusedIndex];
+      if (currRow && currRow.isFolder && collapsedFolders.has(currRow.key)) {
+        setCollapsedFolders(prev => {
+          const next = new Set(prev);
+          next.delete(currRow.key);
+          return next;
+        });
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const currRow = visibleRows[focusedIndex];
+      if (currRow && currRow.isFolder && !collapsedFolders.has(currRow.key)) {
+        setCollapsedFolders(prev => {
+          const next = new Set(prev);
+          next.add(currRow.key);
+          return next;
+        });
+      }
+    } else if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      const currRow = visibleRows[focusedIndex];
+      if (currRow) {
+        if (currRow.isFolder) {
+          toggleFolderSelection(currRow);
+        } else if (currRow.item) {
+          toggleFileSelection(currRow.item);
+        }
+      }
+    }
+  }, [visibleRows, focusedIndex, collapsedFolders, rowVirtualizer, toggleFolderSelection, toggleFileSelection]);
+
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative' }}>
       {/* ── TOP HEADER & STATS ── */}
@@ -432,9 +485,22 @@ export const SelectionComponent: React.FC<Props> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: isMobile ? '11px' : '11.5px', color: '#8b949e' }}>
             <span>{formatSize(totalSelectedBytes)}</span>
             <span>•</span>
-            <span style={{ color: isTokenWarning ? '#f85149' : '#c9d1d9', fontWeight: 500 }}>
+            <span style={{ color: isTokenExceeded ? '#f85149' : isTokenWarning ? '#e3b341' : '#c9d1d9', fontWeight: 500 }}>
               ~{totalEstimatedTokens.toLocaleString()} tokens estimated
             </span>
+            {isTokenExceeded && (
+              <span style={{
+                fontSize: '9.5px',
+                backgroundColor: 'rgba(248, 81, 73, 0.15)',
+                color: '#f85149',
+                border: '1px solid rgba(248, 81, 73, 0.3)',
+                padding: '1px 6px',
+                borderRadius: '8px',
+                fontWeight: 700
+              }}>
+                EXCEEDS MODEL CONTEXT
+              </span>
+            )}
           </div>
         </div>
 
@@ -532,7 +598,7 @@ export const SelectionComponent: React.FC<Props> = ({
               {tokenLimit >= 1000000 ? `${(tokenLimit / 1000000).toFixed(1)}M limit` : `${Math.round(tokenLimit / 1000)}k limit`}
             </span>
           </div>
-          <span style={{ color: isTokenWarning ? '#f85149' : '#58a6ff', fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '11px' }}>
+          <span style={{ color: isTokenExceeded ? '#f85149' : isTokenWarning ? '#e3b341' : '#58a6ff', fontWeight: 600, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '11px' }}>
             {totalEstimatedTokens.toLocaleString()} / {tokenLimit >= 1000000 ? `${(tokenLimit / 1000000).toFixed(1)}M` : `${Math.round(tokenLimit / 1000)}k`} ({tokenPercentage}%)
           </span>
         </div>
@@ -540,7 +606,7 @@ export const SelectionComponent: React.FC<Props> = ({
           <div style={{
             width: `${tokenPercentage}%`,
             height: '100%',
-            backgroundColor: isTokenWarning ? '#f85149' : '#238636',
+            backgroundColor: isTokenExceeded ? '#f85149' : isTokenWarning ? '#e3b341' : '#238636',
             borderRadius: '3px',
             transition: 'width 0.25s ease-out'
           }} />
@@ -643,6 +709,10 @@ export const SelectionComponent: React.FC<Props> = ({
       {/* ── VIRTUALIZED HIERARCHICAL TREE VIEW ── */}
       <div
         ref={parentRef}
+        role="tree"
+        aria-label="Repository File Tree"
+        tabIndex={0}
+        onKeyDown={handleTreeKeyDown}
         className="tree-container"
         style={{
           backgroundColor: '#090d13',
@@ -651,6 +721,7 @@ export const SelectionComponent: React.FC<Props> = ({
           maxHeight: '340px',
           overflowY: 'auto',
           position: 'relative',
+          outline: 'none',
           WebkitOverflowScrolling: 'touch'
         }}
       >
@@ -661,9 +732,11 @@ export const SelectionComponent: React.FC<Props> = ({
         ) : (
           <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', width: '100%' }}>
             {rowVirtualizer.getVirtualItems().map(virtualRow => {
-              const row = visibleRows[virtualRow.index];
+              const rowIndex = virtualRow.index;
+              const row = visibleRows[rowIndex];
               const isFolder = row.isFolder;
               const isCollapsed = isFolder && collapsedFolders.has(row.key);
+              const isFocused = rowIndex === focusedIndex;
 
               // Folder selection state
               const totalInFolder = isFolder ? (folderHierarchy.folderTotals.get(row.key)?.total || 0) : 0;
@@ -683,8 +756,13 @@ export const SelectionComponent: React.FC<Props> = ({
               return (
                 <div
                   key={row.key}
+                  role="treeitem"
+                  aria-expanded={isFolder ? !isCollapsed : undefined}
+                  aria-selected={Boolean(isChecked)}
+                  tabIndex={isFocused ? 0 : -1}
                   className="tree-row"
                   onClick={() => {
+                    setFocusedIndex(rowIndex);
                     if (isFolder) {
                       toggleFolderSelection(row);
                     } else if (row.item) {
@@ -701,8 +779,14 @@ export const SelectionComponent: React.FC<Props> = ({
                     paddingLeft: `${8 + indentPx}px`,
                     paddingRight: '12px',
                     boxSizing: 'border-box',
-                    backgroundColor: isFolder ? 'rgba(255, 255, 255, 0.015)' : 'transparent',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.025)'
+                    backgroundColor: isFocused
+                      ? 'rgba(56, 139, 253, 0.15)'
+                      : isFolder
+                        ? 'rgba(255, 255, 255, 0.015)'
+                        : 'transparent',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.025)',
+                    outline: isFocused ? '1px solid rgba(56, 139, 253, 0.4)' : 'none',
+                    outlineOffset: '-1px'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
