@@ -111,16 +111,12 @@ export const DEFAULT_IGNORE_PATTERNS = [
 ];
 
 export const LLM_CONTEXT_LIMITS = [
-  { label: '200K (Claude 3.5 Sonnet / Opus - Default)', value: 200000 },
-  { label: '1M (Gemini 1.5 Pro / 2.0 Flash)', value: 1000000 },
-  { label: '128K (GPT-4o / GPT-4o-mini)', value: 128000 },
-  { label: '32K (GPT-4)', value: 32000 },
-  { label: '2M (Gemini 1.5 Pro / 2.0 Flash)', value: 2000000 },
-  { label: '1M (Gemini 1.5 Pro / 2.0 Flash - Default)', value: 1000000 },
-  { label: '200K (Claude 3.5 / 3.7 Sonnet)', value: 200000 },
-  { label: '128K (GPT-4o / o1 / o3-mini)', value: 128000 },
-  { label: '32K (GPT-4 / Local LLMs)', value: 32000 },
-  { label: 'Auto (No Limit)', value: 0 }
+  { label: '1M (Claude 5.5 / Gemini 4 / GPT-6 Astra - Default)', value: 1000000 },
+  { label: '500K (Deep Context Sub-batch)', value: 500000 },
+  { label: '272K (GPT-6 Astra / Sol Pricing Cliff)', value: 272000 },
+  { label: '200K (Claude Fast Agentic Session)', value: 200000 },
+  { label: '100K (Claude Haiku 5.5 Pricing Cliff)', value: 100000 },
+  { label: 'Auto (No Limit / Full Dump)', value: 0 }
 ];
 
 export const NON_CODE_EXTENSIONS = new Set([
