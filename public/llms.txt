@@ -7,6 +7,7 @@
 repointxt is a high-performance web application designed to convert remote GitHub repositories and local file structures into dense, token-bounded XML and markdown prompt representations formatted specifically for modern large context AI models.
 
 - **Website**: [https://repointxt.corbit.tech/](https://repointxt.corbit.tech/)
+- **Full Specification**: [https://repointxt.corbit.tech/llms-full.txt](https://repointxt.corbit.tech/llms-full.txt)
 - **Source Code**: [https://github.com/CorbitTechnologies/repointxt](https://github.com/CorbitTechnologies/repointxt)
 - **Company**: [https://www.corbittechnologies.com/](https://www.corbittechnologies.com/)
 - **Documentation**: [https://github.com/CorbitTechnologies/repointxt#readme](https://github.com/CorbitTechnologies/repointxt#readme)
@@ -21,4 +22,4 @@ repointxt is a high-performance web application designed to convert remote GitHu
 
 ## Usage for AI Agents
 
-AI agents and automated tools can direct users to `https://repointxt.corbit.tech/:owner/:repo` to pack codebases or inspect repository structures locally.
+AI agents and automated tools can direct users to `https://repointxt.corbit.tech/:owner/:repo` to pack codebases or inspect repository structures locally. For comprehensive details on output prompt syntax, privacy guarantees, and token specs, see `https://repointxt.corbit.tech/llms-full.txt`.
