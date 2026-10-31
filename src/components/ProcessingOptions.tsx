@@ -75,7 +75,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
             border: `1px solid ${isDark ? 'rgba(56, 139, 253, 0.25)' : 'rgba(9, 105, 218, 0.25)'}`,
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
           }}>
-            {options.maxContextTokens === 1000000 ? '1M' : options.maxContextTokens > 0 ? `${options.maxContextTokens / 1000}K` : 'No Limit'}
+            {options.maxContextTokens >= 1000000 ? `${options.maxContextTokens / 1000000}M` : options.maxContextTokens > 0 ? `${options.maxContextTokens / 1000}K` : 'No Limit'}
           </span>
           <Icon name={isExpanded ? "chevron-down" : "chevron-right"} size={13} color={colors.textSecondary} />
         </div>
@@ -117,26 +117,30 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                   borderRadius: 4,
                   border: '1px solid rgba(56, 139, 253, 0.28)'
                 }}>
-                  {options.maxContextTokens === 1000000
-                    ? '1.0M tokens'
-                    : options.maxContextTokens === 0
-                      ? 'No Limit'
-                      : `${Math.round(options.maxContextTokens / 1000)}k tokens`}
+                  {options.maxContextTokens === 2000000
+                    ? '2.0M tokens'
+                    : options.maxContextTokens === 1000000
+                      ? '1.0M tokens'
+                      : options.maxContextTokens === 0
+                        ? 'No Limit'
+                        : `${Math.round(options.maxContextTokens / 1000)}k tokens`}
                 </span>
                 <span style={{
                   fontSize: 10.5,
-                  color: options.maxContextTokens === 1000000 ? '#38bdf8' : '#3fb950',
+                  color: options.maxContextTokens >= 1000000 ? '#38bdf8' : '#3fb950',
                   fontWeight: '600'
                 }}>
-                  {options.maxContextTokens === 1000000
-                    ? 'Gemini 1.5/2.0'
-                    : options.maxContextTokens === 200000
-                      ? 'Claude 3.5'
-                      : options.maxContextTokens === 128000
-                        ? 'GPT-4o'
-                        : options.maxContextTokens === 32000
-                          ? 'GPT-4'
-                          : 'Custom'}
+                  {options.maxContextTokens === 2000000
+                    ? 'Gemini 2M'
+                    : options.maxContextTokens === 1000000
+                      ? 'Gemini 1M'
+                      : options.maxContextTokens === 200000
+                        ? 'Claude 3.5/3.7'
+                        : options.maxContextTokens === 128000
+                          ? 'GPT-4o / o1 / o3'
+                          : options.maxContextTokens === 32000
+                            ? 'GPT-4'
+                            : 'Custom'}
                 </span>
               </div>
             </div>
@@ -144,7 +148,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
             <input
               type="range"
               min="0"
-              max="4"
+              max="5"
               step="1"
               className="context-slider"
               value={
@@ -156,10 +160,12 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                       ? 2
                       : options.maxContextTokens === 1000000
                         ? 3
-                        : 4
+                        : options.maxContextTokens === 2000000
+                          ? 4
+                          : 5
               }
               onChange={(e) => {
-                const stepValues = [32000, 128000, 200000, 1000000, 0];
+                const stepValues = [32000, 128000, 200000, 1000000, 2000000, 0];
                 const selectedVal = stepValues[Number(e.target.value)];
                 updateOption('maxContextTokens', selectedVal);
               }}
@@ -171,6 +177,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                 { val: 128000, label: '128k' },
                 { val: 200000, label: '200k' },
                 { val: 1000000, label: '1M (Default)' },
+                { val: 2000000, label: '2M' },
                 { val: 0, label: 'Auto' },
               ].map(item => {
                 const isActive = options.maxContextTokens === item.val;
@@ -189,6 +196,72 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                   </span>
                 );
               })}
+            </div>
+          </div>
+
+          {/* ── ROW: OUTPUT FORMAT SWITCHER ── */}
+          <div style={{
+            backgroundColor: isDark ? 'rgba(13, 17, 23, 0.6)' : 'rgba(255, 255, 255, 0.8)',
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.05)' : colors.border}`,
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            justifyContent: 'space-between',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            gap: 8,
+          }}>
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: '700', color: colors.text }}>
+                Prompt Output Format
+              </div>
+              <div style={{ fontSize: 10, color: isDark ? '#8b949e' : '#57606a' }}>
+                XML tags for Claude / GPT-4o, or Markdown code blocks for DeepSeek / open models
+              </div>
+            </div>
+            <div style={{
+              display: 'inline-flex',
+              backgroundColor: isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.05)',
+              borderRadius: 6,
+              padding: 2,
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)'}`
+            }}>
+              <button
+                type="button"
+                onClick={() => updateOption('outputFormat', 'xml')}
+                style={{
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '4px 12px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  backgroundColor: (options.outputFormat || 'xml') === 'xml' ? (isDark ? '#21262d' : '#ffffff') : 'transparent',
+                  color: (options.outputFormat || 'xml') === 'xml' ? '#58a6ff' : colors.textSecondary,
+                  boxShadow: (options.outputFormat || 'xml') === 'xml' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                XML (&lt;file&gt;)
+              </button>
+              <button
+                type="button"
+                onClick={() => updateOption('outputFormat', 'markdown')}
+                style={{
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '4px 12px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  backgroundColor: options.outputFormat === 'markdown' ? (isDark ? '#21262d' : '#ffffff') : 'transparent',
+                  color: options.outputFormat === 'markdown' ? '#58a6ff' : colors.textSecondary,
+                  boxShadow: options.outputFormat === 'markdown' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Markdown (## File)
+              </button>
             </div>
           </div>
 

@@ -182,6 +182,29 @@ const OutputSection: React.FC<OutputSectionProps> = ({
                 </span>
               </>
             )}
+            {Boolean(currentBatch.redactedSecretsCount && currentBatch.redactedSecretsCount > 0) && (
+              <>
+                <span>•</span>
+                <span
+                  style={{
+                    color: '#f85149',
+                    backgroundColor: 'rgba(248, 81, 73, 0.12)',
+                    border: '1px solid rgba(248, 81, 73, 0.3)',
+                    padding: '1px 7px',
+                    borderRadius: 4,
+                    fontWeight: 700,
+                    fontSize: '11px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                  title={`${currentBatch.redactedSecretsCount} detected API key(s) or private credentials were automatically redacted to [REDACTED_API_KEY]`}
+                >
+                  <Icon name="shield-check" size={12} color="#f85149" />
+                  <span>{currentBatch.redactedSecretsCount} secret{currentBatch.redactedSecretsCount > 1 ? 's' : ''} redacted</span>
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -297,7 +320,7 @@ const OutputSection: React.FC<OutputSectionProps> = ({
 
         {/* 3. Claude */}
         <button
-          onClick={() => launchAI('Claude', 'https://claude.ai/new')}
+          onClick={() => launchAI('Claude 3.5 / 3.7 Sonnet', 'https://claude.ai/new')}
           style={{
             background: 'rgba(217, 119, 6, 0.08)',
             border: '1px solid rgba(217, 119, 6, 0.25)',
@@ -312,15 +335,15 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             gap: 5,
             opacity: currentBatch.tokenCount > 200000 ? 0.6 : 1,
           }}
-          title={currentBatch.tokenCount > 200000 ? 'Exceeds Claude 200k limit' : 'Open in Claude'}
+          title={currentBatch.tokenCount > 200000 ? 'Exceeds Claude 200k limit' : 'Open in Claude 3.5 / 3.7 (200k)'}
         >
           <BrandIcons.Claude />
-          <span>Claude</span>
+          <span>Claude (200k)</span>
         </button>
 
-        {/* 4. ChatGPT */}
+        {/* 4. ChatGPT / OpenAI */}
         <button
-          onClick={() => launchAI('ChatGPT', 'https://chatgpt.com/')}
+          onClick={() => launchAI('ChatGPT (GPT-4o / o1 / o3-mini)', 'https://chatgpt.com/')}
           style={{
             background: 'rgba(16, 163, 127, 0.08)',
             border: '1px solid rgba(16, 163, 127, 0.25)',
@@ -335,10 +358,10 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             gap: 5,
             opacity: currentBatch.tokenCount > 128000 ? 0.6 : 1,
           }}
-          title={currentBatch.tokenCount > 128000 ? 'Exceeds ChatGPT 128k limit' : 'Open in ChatGPT'}
+          title={currentBatch.tokenCount > 128000 ? 'Exceeds ChatGPT 128k limit' : 'Open in ChatGPT (GPT-4o / o1 / o3-mini)'}
         >
           <BrandIcons.ChatGPT />
-          <span>ChatGPT</span>
+          <span>ChatGPT (128k)</span>
         </button>
 
         {isHugeContext && (
