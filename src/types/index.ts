@@ -36,7 +36,10 @@ export interface PromptBatch {
   tokenCount: number;
   charCount: number;
   elapsedMs?: number;
+  redactedSecretsCount?: number;
 }
+
+export type OutputFormat = 'xml' | 'markdown';
 
 export interface ProcessingOptionsState {
   removeComments: boolean;
@@ -44,4 +47,5 @@ export interface ProcessingOptionsState {
   maxContextTokens: number;
   maxFileSize: number;
   ignorePatterns: string;
+  outputFormat: OutputFormat;
 }
