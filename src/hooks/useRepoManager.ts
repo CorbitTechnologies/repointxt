@@ -276,6 +276,14 @@ export const useRepoManager = () => {
         !repoSlugMatch[0].startsWith('alternatives')
       ) {
         const slug = `${repoSlugMatch[1]}/${repoSlugMatch[2]}`;
+        document.title = `Pack ${slug} into LLM Context | repointxt`;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+          metaDesc.setAttribute(
+            'content',
+            `Generate token-optimized prompt bundles for ${slug}. In-browser client-side packing for Claude, Gemini, and ChatGPT.`
+          );
+        }
         setGithubUrl(slug);
         setActiveTab('github');
         fetchGitHubRepo(false, slug);
