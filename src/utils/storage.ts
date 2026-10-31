@@ -33,6 +33,8 @@ const deobfuscate = (text: string): string => {
 export const saveGitHubToken = (token: string, persist = false): void => {
     try {
         const obfuscated = obfuscate(token);
+        // Default exclusively to sessionStorage so PATs are wiped when tab closes.
+        // localStorage is only used if explicit persistence is requested with user awareness.
         if (persist) {
             localStorage.setItem(STORAGE_KEYS.GITHUB_TOKEN, obfuscated);
             sessionStorage.removeItem(STORAGE_KEYS.GITHUB_TOKEN);
@@ -48,10 +50,9 @@ export const saveGitHubToken = (token: string, persist = false): void => {
 
 export const loadGitHubToken = (): string => {
     try {
-        // Check sessionStorage first (safest, non-persistent), then fallback to localStorage
+        // Check sessionStorage first (safest, non-persistent), then fallback to localStorage if user explicitly persisted
         const obfuscated = sessionStorage.getItem(STORAGE_KEYS.GITHUB_TOKEN)
-            || localStorage.getItem(STORAGE_KEYS.GITHUB_TOKEN)
-            || localStorage.getItem(LEGACY_STORAGE_KEYS.GITHUB_TOKEN);
+            || localStorage.getItem(STORAGE_KEYS.GITHUB_TOKEN);
         return deobfuscate(obfuscated || '');
     } catch (error) {
         console.error('Failed to load GitHub token:', error);

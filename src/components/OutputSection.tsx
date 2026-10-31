@@ -266,11 +266,11 @@ const OutputSection: React.FC<OutputSectionProps> = ({
           backgroundColor: 'rgba(13, 17, 23, 0.7)',
           border: '1px solid rgba(255, 255, 255, 0.05)',
           borderRadius: '6px',
-          padding: '4px 8px',
+          padding: isMobile ? '6px 8px' : '4px 8px',
           flexWrap: 'wrap',
         }}
       >
-        <span style={{ fontSize: '11px', color: '#8b949e', fontWeight: 600, marginRight: 2 }}>
+        <span style={{ fontSize: '11px', color: '#8b949e', fontWeight: 600, marginRight: 2, width: isMobile ? '100%' : 'auto' }}>
           Launch in:
         </span>
 
@@ -425,11 +425,11 @@ const OutputSection: React.FC<OutputSectionProps> = ({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '12px 14px', maxHeight: 420, overflowY: 'auto' }}>
+        <div style={{ padding: isMobile ? '10px' : '12px 14px', maxHeight: isMobile ? 260 : 420, overflowY: 'auto' }}>
           <pre
             style={{
               margin: 0,
-              fontSize: '12px',
+              fontSize: isMobile ? '11px' : '12px',
               fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
               lineHeight: 1.55,
               color: '#f0f6fc',

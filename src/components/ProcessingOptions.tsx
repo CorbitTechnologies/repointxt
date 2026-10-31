@@ -171,13 +171,20 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
               }}
             />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8b949e', marginTop: 2, padding: '0 2px' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: isMobile ? 9 : 10,
+              color: '#8b949e',
+              marginTop: 2,
+              padding: '0 2px'
+            }}>
               {[
                 { val: 32000, label: '32k' },
-                { val: 128000, label: '128k' },
-                { val: 200000, label: '200k' },
-                { val: 1000000, label: '1M (Default)' },
-                { val: 2000000, label: '2M' },
+                { val: 128000, label: isMobile ? '128k' : '128k' },
+                { val: 200000, label: isMobile ? '200k' : '200k' },
+                { val: 1000000, label: isMobile ? '1M' : '1M (Default)' },
+                { val: 2000000, label: isMobile ? '2M' : '2M' },
                 { val: 0, label: 'Auto' },
               ].map(item => {
                 const isActive = options.maxContextTokens === item.val;
@@ -188,7 +195,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                       cursor: 'pointer',
                       color: isActive ? '#58a6ff' : '#8b949e',
                       fontWeight: isActive ? 700 : 500,
-                      transition: 'color 0.12s ease'
+                      padding: '2px 4px', // Touch-friendly tap surface
                     }}
                     onClick={() => updateOption('maxContextTokens', item.val)}
                   >
