@@ -7,7 +7,7 @@ const LocalTab: React.FC<any> = (props) => {
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: props.isMobile ? 'column' : 'row', gap: 8 }}>
         <button
           style={{
             flex: 1,

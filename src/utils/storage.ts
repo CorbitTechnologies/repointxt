@@ -102,10 +102,15 @@ export const clearUrlHistory = (): void => {
     }
 };
 
+const SETTINGS_SCHEMA_VERSION = 2; // Bump to migrate legacy <2026 context limits to 1M
+
 export const saveAppSettings = (settings: any): void => {
     if (!settings) return;
     try {
-        localStorage.setItem(STORAGE_KEYS.APP_SETTINGS, JSON.stringify(settings));
+        localStorage.setItem(
+            STORAGE_KEYS.APP_SETTINGS,
+            JSON.stringify({ ...settings, _v: SETTINGS_SCHEMA_VERSION })
+        );
     } catch (error) {
         console.error('Failed to save app settings:', error);
     }
@@ -113,9 +118,15 @@ export const saveAppSettings = (settings: any): void => {
 
 export const loadAppSettings = (): any => {
     try {
-        const settings = localStorage.getItem(STORAGE_KEYS.APP_SETTINGS)
+        const raw = localStorage.getItem(STORAGE_KEYS.APP_SETTINGS)
             || localStorage.getItem(LEGACY_STORAGE_KEYS.APP_SETTINGS);
-        return settings ? JSON.parse(settings) : null;
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        // One-time migration: reset maxContextTokens to undefined so DEFAULT_CONTEXT_TOKENS (1M) takes over
+        if (!parsed._v || parsed._v < SETTINGS_SCHEMA_VERSION) {
+            delete parsed.maxContextTokens;
+        }
+        return parsed;
     } catch (error) {
         console.error('Failed to load app settings:', error);
         return null;

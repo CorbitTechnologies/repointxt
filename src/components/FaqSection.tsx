@@ -13,11 +13,11 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     question: "How is repointxt different from repo2txt or gitingest?",
-    answer: "repointxt provides active token budgeting (sliders for 32k, 128k, 200k, and 1M tokens), intelligent multi-part chunking for Claude and Gemini, automatic stripping of SVG paths, legal licenses, and build boilerplate, plus native presets for Turborepo, Next.js, and Flutter monorepos—all completely client-side without server retention."
+    answer: "repointxt provides active token budgeting (sliders for 100K, 200K, 272K, 500K, and 1M tokens), intelligent multi-part chunking for Claude and Gemini, automatic stripping of SVG paths, legal licenses, and build boilerplate, plus native presets for Turborepo, Next.js, and Flutter monorepos—all completely client-side without server retention."
   },
   {
     question: "How do I pack a GitHub repository for Claude 5.5 or Gemini 4?",
-    answer: "Simply enter your GitHub repository URL (or append /owner/repo to repointxt.corbit.tech), select your target context window (e.g. 200K for Claude, 1M for Gemini 4, 2M for extended-context runs), select the files you want to include, and click Generate. repointxt will automatically create token-bounded XML prompt blocks ready to paste directly into your AI chat."
+    answer: "Simply enter your GitHub repository URL (or append /owner/repo to repointxt.corbit.tech), select your target context window (e.g. 200K for Claude, 1M for Gemini 4 / GPT-6), select the files you want to include, and click Generate. repointxt will automatically create token-bounded XML prompt blocks ready to paste directly into your AI chat."
   },
   {
     question: "Is there a 1-click Browser Bookmarklet to jump from GitHub to repointxt?",

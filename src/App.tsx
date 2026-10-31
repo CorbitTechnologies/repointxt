@@ -106,6 +106,24 @@ export default function App() {
     };
   }, [setIsDragging, processDroppedItems]);
 
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      const text = e.clipboardData?.getData('text')?.trim();
+      if (text && /^(https?:\/\/github\.com\/)?[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/?$/.test(text)) {
+        e.preventDefault();
+        setActiveTab('github');
+        setGithubUrl(text);
+        fetchGitHubRepo(false, text);
+      }
+    };
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, [setActiveTab, setGithubUrl, fetchGitHubRepo]);
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: colors.background, color: colors.text, display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', position: 'relative' }}>
 
@@ -260,16 +278,21 @@ export default function App() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            padding: '4px 12px',
-            borderRadius: 20,
+            padding: isMobile ? '6px 12px' : '4px 12px',
+            borderRadius: isMobile ? 10 : 20,
             backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : 'rgba(9, 105, 218, 0.08)',
             border: `1px solid ${isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(9, 105, 218, 0.25)'}`,
-            fontSize: 11.5,
+            fontSize: isMobile ? 11 : 11.5,
             fontWeight: 600,
-            color: isDark ? '#7dd3fc' : '#0969da'
+            color: isDark ? '#7dd3fc' : '#0969da',
+            textAlign: 'left'
           }}>
-            <Icon name="shield-check" size={13} color={isDark ? '#38bdf8' : '#0969da'} />
-            <span>100% Client-Side &amp; Private — Zero servers, in-browser parsing. Code never leaves your machine.</span>
+            <Icon name="shield-check" size={isMobile ? 14 : 13} color={isDark ? '#38bdf8' : '#0969da'} />
+            <span>
+              {isMobile
+                ? '100% Client-Side & Private — Zero server uploads.'
+                : '100% Client-Side & Private — Zero servers, in-browser parsing. Code never leaves your machine.'}
+            </span>
           </div>
         </div>
 
@@ -414,6 +437,7 @@ export default function App() {
       <footer style={{
         borderTop: `1px solid ${colors.border}`,
         padding: '20px',
+        paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
         textAlign: 'center',
         backgroundColor: isDark ? '#05070a' : '#fafafa',
         display: 'flex',

@@ -104,14 +104,16 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
             borderRadius: 8,
             border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.05)' : colors.border}`
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 2 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 11.5, fontWeight: '700', color: colors.text }}>
                   Target LLM Context Limit
                 </span>
-                <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#57606a' }}>
-                  (Chunking threshold)
-                </span>
+                {!isMobile && (
+                  <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#57606a' }}>
+                    (Chunking threshold)
+                  </span>
+                )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{

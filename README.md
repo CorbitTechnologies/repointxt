@@ -5,7 +5,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/CorbitTechnologies/repointxt?style=for-the-badge&logo=github&color=e3b341)](https://github.com/CorbitTechnologies/repointxt/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://github.com/CorbitTechnologies/repointxt/blob/main/LICENSE)
 
-> **100% In-Browser Codebase-to-Prompt Context Packer** for Claude 3.5 Sonnet, ChatGPT (GPT-4o), Gemini 1.5 Pro, and DeepSeek. Private, zero-server alternative to `repo2txt` and `gitingest`.
+> **100% In-Browser Codebase-to-Prompt Context Packer** for Claude 5.5, ChatGPT (GPT-6), Gemini 4, and DeepSeek-V4.1. Private, zero-server alternative to `repo2txt` and `gitingest`.
 
 Engineered and maintained by [**Corbit Technologies**](https://www.corbittechnologies.com/?utm_source=repointxt&utm_medium=readme_hero&utm_campaign=open_source). While our primary mission is designing, building, and scaling high-impact **consumer-facing platforms and digital experiences**, we build and open-source specialized utilities like `repointxt` to solve real developer workflow challenges with high engineering standards.
 
@@ -16,7 +16,7 @@ Engineered and maintained by [**Corbit Technologies**](https://www.corbittechnol
 | Feature | repointxt (Corbit Technologies) | Cloud Proxies (repo2txt, gitingest) |
 | :--- | :--- | :--- |
 | **Privacy & Security** | **100% Client-Side:** Code and GitHub tokens are processed purely in local browser memory. Zero server uploads. | Routes code and GitHub tokens through third-party servers and cloud workers. |
-| **Active Token Budgeting** | **Precision Sliders (32k, 128k, 200k, 1M, Auto):** Multi-part batching calibrated for Claude, Gemini, and GPT-4o. | Naive dumping that exceeds token limits or burns expensive LLM context. |
+| **Active Token Budgeting** | **Precision Sliders (100K, 200K, 272K, 500K, 1M, Auto):** Multi-part batching calibrated for Claude 5.5, Gemini 4, and GPT-6. | Naive dumping that exceeds token limits or burns expensive LLM context. |
 | **AST & Signal Cleaning** | Stubs massive SVG path strings, compacts Tailwind utility runs, strips duplicate legal licenses and lockfiles. | Dumps raw text including boilerplate and build artifacts. |
 | **Modern Stack Aware** | Native support for Turborepo, Next.js (App Router), Flutter, and Supabase schemas. | Basic folder dumps with no framework intelligence. |
 | **Instant Ingestion** | Prepend `repointxt.corbit.tech/` to any GitHub URL or drop folders directly. | Clunky manual downloads or queue waiting. |
@@ -34,9 +34,9 @@ repointxt.corbit.tech/flutter/flutter
 ```
 
 **Pre-configured Model Context Windows:**
-- Claude 3.5 Sonnet (200k tokens): `repointxt.corbit.tech/owner/repo?model=claude`
-- Gemini 1.5 Pro (1M tokens): `repointxt.corbit.tech/owner/repo?model=gemini`
-- GPT-4o (128k tokens): `repointxt.corbit.tech/owner/repo?model=gpt4o`
+- Claude 5.5 (1M tokens): `repointxt.corbit.tech/owner/repo?model=claude`
+- Gemini 4 (1M tokens): `repointxt.corbit.tech/owner/repo?model=gemini`
+- ChatGPT / GPT-6 (1M tokens): `repointxt.corbit.tech/owner/repo?model=gpt6`
 
 ---
 

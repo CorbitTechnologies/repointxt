@@ -140,18 +140,10 @@ export const fetchRepoZipball = async (
   const hasToken = Boolean(token && token.trim());
   const authHeaders = getAuthHeaders(token);
 
-  let activeBranch = branch;
-  if (!activeBranch) {
-    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: authHeaders });
-    if (onRateLimit) readRateLimit(repoRes, onRateLimit);
-    if (!repoRes.ok) {
-      await parseGitHubApiError(repoRes, hasToken);
-    }
-    const data = await repoRes.json();
-    activeBranch = data.default_branch;
-  }
-
-  const zipUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${encodeURIComponent(activeBranch)}`;
+  const activeBranch = branch || 'HEAD';
+  const zipUrl = branch
+    ? `https://api.github.com/repos/${owner}/${repo}/zipball/${encodeURIComponent(branch)}`
+    : `https://api.github.com/repos/${owner}/${repo}/zipball`;
   const zipRes = await fetch(zipUrl, { headers: authHeaders });
   if (onRateLimit) readRateLimit(zipRes, onRateLimit);
   if (!zipRes.ok) {

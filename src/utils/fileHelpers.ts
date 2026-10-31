@@ -37,7 +37,7 @@ export const shouldIgnore = (path: string, patternsStr: string = DEFAULT_IGNORE_
 
   const isEssentialDotFile = /(^|\/)(\.env\.example|\.env\.template|\.env\.sample|\.gitignore|\.eslintrc|\.github)([\/]|$)/i.test(path);
   if (!isEssentialDotFile && /(^|\/)\.[^/]+/i.test(path)) {
-    if (/(^|\/)(\.git|\.cache|\.next|\.turbo|\.idea|\.vscode|\.netlify)([\/]|$)/i.test(path)) return true;
+    if (/(^|\/)(\.git|\.cache|\.next|\.turbo|\.netlify|\.vercel|\.idea|\.vscode)([\/]|$)/i.test(path)) return true;
   }
 
   const compiled = getCompiledPatterns(patternsStr);

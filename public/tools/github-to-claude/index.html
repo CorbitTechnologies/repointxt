@@ -3,12 +3,12 @@
  <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Convert GitHub Repos to Claude 3.5 Sonnet 200k Prompts | repointxt</title>
-  <meta name="description" content="Pack GitHub repositories and local directories into token-dense prompt bundles tailored for Claude 3.5 Sonnet's 200k context window. 100% client-side and private." />
-  <link rel="canonical" href="https://repointxt.corbit.tech/tools/github-to-claude" />
-  <meta property="og:title" content="Convert GitHub Repos to Claude 3.5 Sonnet 200k Prompts | repointxt" />
-  <meta property="og:description" content="Pack codebases into Claude 3.5 Sonnet prompt bundles with XML hierarchy, route maps, and active token budgeting." />
-  <meta property="og:url" content="https://repointxt.corbit.tech/tools/github-to-claude" />
+  <title>Convert GitHub Repos to Claude 5.5 Sonnet &amp; Opus (1M &amp; 200K Agentic) Prompts | repointxt</title>
+  <meta name="description" content="Pack GitHub repositories and local directories into token-dense prompt bundles tailored for Claude 5.5 Sonnet &amp; Opus (1M &amp; 200K Agentic) context windows. 100% client-side and private." />
+  <link rel="canonical" href="https://repointxt.corbit.tech/tools/github-to-claude/" />
+  <meta property="og:title" content="Convert GitHub Repos to Claude 5.5 Sonnet &amp; Opus (1M &amp; 200K Agentic) Prompts | repointxt" />
+  <meta property="og:description" content="Pack codebases into Claude 5.5 Sonnet &amp; Opus prompt bundles with XML hierarchy, route maps, and active token budgeting." />
+  <meta property="og:url" content="https://repointxt.corbit.tech/tools/github-to-claude/" />
   <meta property="og:type" content="website" />
   <style>
     body {
@@ -57,24 +57,31 @@
       padding: 20px;
       margin: 20px 0;
     }
+    @media (max-width: 640px) {
+      .container { margin: 24px auto; padding: 0 14px; }
+      .hero h1 { font-size: 24px; line-height: 1.25; }
+      .cta-btn { width: 100%; box-sizing: border-box; text-align: center; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
+      th, td { padding: 10px 12px; }
+    }
   </style>
  </head>
  <body>
   <div class="container">
     <div class="hero">
-      <div class="badge">Optimized for Anthropic Claude 3.5 Sonnet</div>
-      <h1>Convert GitHub Repositories to Claude 3.5 Sonnet 200k Prompts</h1>
+      <div class="badge">Optimized for Anthropic Claude 5.5 Sonnet &amp; Opus</div>
+      <h1>Convert GitHub Repositories to Claude 5.5 Sonnet &amp; Opus (1M &amp; 200K Agentic) Prompts</h1>
       <p style="font-size: 16px; color: #8b949e; max-width: 680px; margin: 0 auto;">
-        Anthropic Claude excels at reasoning across dense XML prompt representations. repointxt formats your repository into token-bounded XML blocks with manifest topologies and CDATA boundaries designed specifically for Claude's 200k token window.
+        Anthropic Claude excels at reasoning across dense XML prompt representations. repointxt formats your repository into token-bounded XML blocks with manifest topologies and CDATA boundaries designed specifically for Claude's 1M and 200K agentic token windows.
       </p>
-      <a href="/?model=claude" class="cta-btn">Pack for Claude 3.5 Sonnet Now →</a>
+      <a href="/?model=claude" class="cta-btn">Pack for Claude 5.5 Sonnet &amp; Opus Now →</a>
     </div>
 
     <div class="card">
-      <h2>Why Use repointxt for Claude 3.5 Sonnet?</h2>
+      <h2>Why Use repointxt for Claude 5.5 Sonnet &amp; Opus?</h2>
       <ul>
         <li><strong>XML-Native Prompts:</strong> Wraps files in <code>&lt;codebase_context&gt;</code>, <code>&lt;manifest&gt;</code>, and <code>&lt;file&gt;</code> tags following Anthropic prompt engineering best practices.</li>
-        <li><strong>Automatic Multi-Batch Chunking:</strong> Repositories exceeding 200k tokens are split into continuous parts with deferred file listings and cross-part guidance.</li>
+        <li><strong>Automatic Multi-Batch Chunking:</strong> Repositories exceeding your context budget are split into continuous parts with deferred file listings and cross-part guidance.</li>
         <li><strong>Zero Data Exposure:</strong> Ingest code without uploading proprietary assets to intermediate proxies.</li>
       </ul>
     </div>

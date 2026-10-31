@@ -9,6 +9,7 @@ const PATTERNS = {
   pyDocSingle: /'''[\s\S]*?'''/g,
   multiNewlines: /\n{3,}/g,
   spacesRun: /[ \t]+/g,
+  trailingSpaces: /[ \t\r]+$/gm,
   jsPreserveAndComments: /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`|(?<![a-zA-Z0-9_$)\s])\/(?![/*])(?:\\.|[^/\n\\])+\/[gimsuy]*)|\/\*[\s\S]*?\*\/|(?:\s|^|\b)\/\/(?!\/)[^\r\n]*/g,
   hashPreserveAndComments: /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*')|(^#!.*$)|((^|[^\S\r\n])#[^\r\n]*)/gm,
   licenseHeaders: /^(?:\/\*[\s\S]*?(?:copyright|license|all rights reserved)[\s\S]*?\*\/|\/\/(?:[^\n]*(?:copyright|license))[^\n]*\n*)+/i,
@@ -63,9 +64,7 @@ export const stripComments = (content: string, filePath: string): string => {
 
 export const compressWhitespace = (content: string): string => {
   return content
-    .split('\n')
-    .map(line => line.trimEnd())
-    .join('\n')
+    .replace(PATTERNS.trailingSpaces, '')
     .replace(PATTERNS.multiNewlines, '\n\n')
     .trim();
 };

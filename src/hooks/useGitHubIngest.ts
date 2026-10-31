@@ -136,14 +136,22 @@ export const useGitHubIngest = ({
       const targetModel = urlParams.get('model')?.toLowerCase();
       const stripCommentsParam = urlParams.get('stripComments');
 
-      if (targetModel === 'claude' || targetModel === 'claude3' || targetModel === 'claude-3-5' || targetModel === 'claude-3-7') {
+      if (targetModel === 'haiku' || targetModel === 'haiku55') {
+        setOptions(prev => ({ ...prev, maxContextTokens: 100000 }));
+      } else if (targetModel === 'claude-agent' || targetModel === 'claude-fast') {
         setOptions(prev => ({ ...prev, maxContextTokens: 200000 }));
-      } else if (targetModel === 'gemini2m' || targetModel === 'gemini-2m' || targetModel === 'aistudio') {
-        setOptions(prev => ({ ...prev, maxContextTokens: 2000000 }));
-      } else if (targetModel === 'gemini' || targetModel === 'gemini-1.5' || targetModel === 'gemini-2.0') {
+      } else if (targetModel === 'gpt6-tier' || targetModel === 'astra-tier' || targetModel === 'sol') {
+        setOptions(prev => ({ ...prev, maxContextTokens: 272000 }));
+      } else if (
+        targetModel === 'claude' ||
+        targetModel === 'claude55' ||
+        targetModel === 'gemini' ||
+        targetModel === 'gemini4' ||
+        targetModel === 'gpt6' ||
+        targetModel === 'chatgpt' ||
+        targetModel === 'deepseek'
+      ) {
         setOptions(prev => ({ ...prev, maxContextTokens: 1000000 }));
-      } else if (targetModel === 'gpt4o' || targetModel === 'gpt4' || targetModel === 'chatgpt' || targetModel === 'o1' || targetModel === 'o3-mini') {
-        setOptions(prev => ({ ...prev, maxContextTokens: 128000 }));
       }
 
       if (stripCommentsParam !== null) {

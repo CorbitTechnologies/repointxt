@@ -42,6 +42,8 @@ const formatTime = (ms?: number): string => {
   return `${(ms / 1000).toFixed(1)}s`;
 };
 
+const PREVIEW_CHAR_LIMIT = 50000;
+
 const OutputSection: React.FC<OutputSectionProps> = ({
   outputBatches,
   activeBatchIndex,
@@ -52,11 +54,17 @@ const OutputSection: React.FC<OutputSectionProps> = ({
   const { colors, borderRadius, shadows } = useTheme();
   const [copied, setCopied] = useState(false);
   const [activeModelToast, setActiveModelToast] = useState<string | null>(null);
+  const [showFullPreview, setShowFullPreview] = useState(false);
 
   if (!outputBatches || outputBatches.length === 0) return null;
 
   const currentBatch = outputBatches[activeBatchIndex];
   if (!currentBatch) return null;
+
+  const isPreviewTruncated = !showFullPreview && currentBatch.text.length > PREVIEW_CHAR_LIMIT;
+  const displayedText = isPreviewTruncated
+    ? currentBatch.text.slice(0, PREVIEW_CHAR_LIMIT)
+    : currentBatch.text;
 
   const copyToClipboard = async () => {
     try {
@@ -217,6 +225,7 @@ const OutputSection: React.FC<OutputSectionProps> = ({
               padding: '6px 12px',
               fontSize: '12px',
               fontWeight: 700,
+              flex: isMobile ? 1 : 'initial',
               backgroundColor: copied ? '#238636' : '#1f6feb',
               borderRadius: '5px',
               gap: 5,
@@ -295,7 +304,8 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             background: 'rgba(217, 119, 6, 0.08)',
             border: '1px solid rgba(217, 119, 6, 0.25)',
             color: '#fbbf24',
-            padding: '3px 8px',
+            padding: isMobile ? '7px 10px' : '4px 9px',
+            flex: isMobile ? '1 1 calc(50% - 6px)' : 'initial',
             borderRadius: '4px',
             fontSize: '11px',
             fontWeight: 600,
@@ -317,7 +327,8 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             background: 'rgba(16, 163, 127, 0.08)',
             border: '1px solid rgba(16, 163, 127, 0.25)',
             color: '#34d399',
-            padding: '3px 8px',
+            padding: isMobile ? '7px 10px' : '4px 9px',
+            flex: isMobile ? '1 1 calc(50% - 6px)' : 'initial',
             borderRadius: '4px',
             fontSize: '11px',
             fontWeight: 600,
@@ -339,7 +350,8 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             background: 'rgba(66, 133, 244, 0.12)',
             border: '1px solid rgba(66, 133, 244, 0.35)',
             color: '#70a5ff',
-            padding: '3px 8px',
+            padding: isMobile ? '7px 10px' : '4px 9px',
+            flex: isMobile ? '1 1 calc(50% - 6px)' : 'initial',
             borderRadius: '4px',
             fontSize: '11px',
             fontWeight: 600,
@@ -361,7 +373,8 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             background: 'rgba(56, 189, 248, 0.12)',
             border: '1px solid rgba(56, 189, 248, 0.35)',
             color: '#38bdf8',
-            padding: '3px 8px',
+            padding: isMobile ? '7px 10px' : '4px 9px',
+            flex: isMobile ? '1 1 calc(50% - 6px)' : 'initial',
             borderRadius: '4px',
             fontSize: '11px',
             fontWeight: 600,
@@ -443,8 +456,18 @@ const OutputSection: React.FC<OutputSectionProps> = ({
               wordBreak: 'break-word',
             }}
           >
-            {currentBatch.text}
+            {displayedText}
           </pre>
+          {isPreviewTruncated && (
+            <button
+              type="button"
+              onClick={() => setShowFullPreview(true)}
+              className="btn-secondary"
+              style={{ marginTop: 10, width: '100%', padding: '6px', fontSize: '11.5px', color: '#58a6ff' }}
+            >
+              Preview truncated for instant rendering ({Math.round(currentBatch.text.length / 1024).toLocaleString()} KB total — Copy/Download includes 100%) · Click to expand full text
+            </button>
+          )}
         </div>
       </div>
     </div>

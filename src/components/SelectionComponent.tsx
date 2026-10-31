@@ -3,7 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import Icon from './Icon';
 import Checkbox from './Checkbox';
 import { FileItem, Source } from '../types';
-import { AVG_CHARS_PER_TOKEN } from '../utils/fileHelpers';
+import { AVG_CHARS_PER_TOKEN, smartSelectFiles } from '../utils/fileHelpers';
 import { trackFileFryerOutbound } from '../services/telemetry';
 
 interface Props {
@@ -360,19 +360,8 @@ export const SelectionComponent: React.FC<Props> = ({
       return;
     }
     if (type === 'core') {
-      const nonCode = /\.(png|jpe?g|gif|svg|ico|pdf|zip|lock|lockb|min\.js|map)$/i;
-      const coreDir = /(^|\/)(src|lib|app|components|pages|hooks|services|core|api)\//i;
-      setSelectedFiles(
-        tree.filter(i => {
-          if (i.type !== 'blob' || nonCode.test(i.path)) return false;
-          // De-prioritize ios/ and android/ boilerplate by default unless key manifests
-          const p = i.path.toLowerCase();
-          if ((p.startsWith('ios/') || p.startsWith('android/')) && !p.endsWith('androidmanifest.xml') && !p.endsWith('build.gradle') && !p.endsWith('podfile')) {
-            return false;
-          }
-          return coreDir.test(i.path) || !i.path.includes('/');
-        })
-      );
+      setSelectedFiles(smartSelectFiles(tree));
+      return;
     }
   };
 
@@ -382,14 +371,19 @@ export const SelectionComponent: React.FC<Props> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // Virtualization setup
+  // Virtualization setup — row height must match the rendered CSS height or rows overlap
   const parentRef = useRef<HTMLDivElement>(null);
+  const rowHeight = isMobile ? 34 : 28;
   const rowVirtualizer = useVirtualizer({
     count: visibleRows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 28,
+    estimateSize: () => rowHeight,
     overscan: 10,
   });
+
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [rowHeight, rowVirtualizer]);
 
   // Tree keyboard navigation: ArrowUp, ArrowDown, ArrowRight (expand), ArrowLeft (collapse), Space (toggle)
   const handleTreeKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -642,7 +636,7 @@ export const SelectionComponent: React.FC<Props> = ({
             type="text"
             value={filterQuery}
             onChange={e => setFilterQuery(e.target.value)}
-            placeholder="Filter files by name or path (e.g. lib, .dart, auth)..."
+            placeholder={isMobile ? 'Filter files...' : 'Filter files by name or path (e.g. lib, .dart, auth)...'}
             style={{
               width: '100%',
               backgroundColor: '#0d1117',
@@ -682,20 +676,22 @@ export const SelectionComponent: React.FC<Props> = ({
         <button
           onClick={expandAllFolders}
           className="btn-secondary"
-          style={{ padding: '5px 9px', flexShrink: 0, fontSize: '11.5px', borderRadius: '5px' }}
+          aria-label="Expand all folders"
+          style={{ padding: isMobile ? '7px 8px' : '5px 9px', flexShrink: 0, fontSize: '11.5px', borderRadius: '5px' }}
           title="Expand all folders"
         >
           <Icon name="chevron-down" size={11} color="#8b949e" />
-          <span>Expand</span>
+          {!isMobile && <span>Expand</span>}
         </button>
         <button
           onClick={collapseAllFolders}
           className="btn-secondary"
-          style={{ padding: '5px 9px', flexShrink: 0, fontSize: '11.5px', borderRadius: '5px' }}
+          aria-label="Collapse all folders"
+          style={{ padding: isMobile ? '7px 8px' : '5px 9px', flexShrink: 0, fontSize: '11.5px', borderRadius: '5px' }}
           title="Collapse all folders"
         >
           <Icon name="chevron-right" size={11} color="#8b949e" />
-          <span>Collapse</span>
+          {!isMobile && <span>Collapse</span>}
         </button>
       </div>
 
@@ -985,6 +981,7 @@ export const SelectionComponent: React.FC<Props> = ({
         zIndex: 10,
         backgroundColor: 'var(--bg-card)',
         paddingTop: '6px',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         borderTop: '1px solid var(--border)'
       }}>
         <button

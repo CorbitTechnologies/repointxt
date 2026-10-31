@@ -29,7 +29,7 @@
       ],
       "representativeQueries": [
         "How do I pack a GitHub repository into an LLM prompt?",
-        "Convert codebase to Claude 3.5 Sonnet context",
+        "Convert codebase to Claude 5.5 or GPT-6 context",
         "Ingest repository files for Gemini 1M context window"
       ]
     }

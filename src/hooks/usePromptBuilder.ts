@@ -160,7 +160,10 @@ export const usePromptBuilder = ({
         const hasFlutter = paths.some(p => p.endsWith('pubspec.yaml') || p.endsWith('.dart'));
         const hasSupabase = paths.some(p => p.includes('supabase/'));
         const hasFirebase = paths.some(p => p.includes('firestore.rules') || p.includes('firebase.json'));
-        const hasTurbo = paths.some(p => p.includes('turbo.json') || p.includes('pnpm-workspace.yaml'));
+        const hasTurbo = paths.some(p =>
+          p.includes('turbo.json') ||
+          (p.includes('pnpm-workspace.yaml') && paths.some(fp => fp.startsWith('apps/') || fp.startsWith('packages/')))
+        );
 
         if (hasTurbo) frameworks.push('Turborepo Monorepo');
         if (hasNext) frameworks.push('Next.js (App Router)');
@@ -382,9 +385,12 @@ export const usePromptBuilder = ({
           }
 
           const estTokens = estimateTokens(opt);
-          const safeContent = opt.replace(/]]>/g, ']]]]><![CDATA[> >');
+          // Split the string literal so repointxt doesn't self-escape it when packing its own repo:
+          const cdataEnd = ']]' + '>';
+          const cdataEscape = ']]]]' + '><![CDATA[' + '>';
+          const safeContent = opt.replaceAll(cdataEnd, cdataEscape);
           return {
-            text: `  <file path="${f.path}"${boundaryAttr} language="${ext}" tokens="~${estTokens}">\n<![CDATA[\n${safeContent}\n]]>\n  </file>`,
+            text: `  <file path="${f.path}"${boundaryAttr} language="${ext}" tokens="~${estTokens}">\n<![CDATA[\n${safeContent}\n${cdataEnd}\n  </file>`,
             redactedCount: redactedSecretsCount,
           };
         });

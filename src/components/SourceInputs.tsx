@@ -128,8 +128,8 @@ const SourceInputs: React.FC<SourceInputsProps> = ({
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, position: 'relative', zIndex: 1, marginTop: 2 }}>
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6, color: colors.textSecondary }}>Personal Access Token</span>
             <span style={{ fontSize: 10, fontWeight: '700', backgroundColor: colors.surface, color: colors.textSecondary, padding: '2px 6px', borderRadius: 4, border: `1px solid ${colors.border}` }}>Optional for Public Repos</span>
           </div>

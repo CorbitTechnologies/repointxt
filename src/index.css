@@ -182,11 +182,6 @@ input, select, textarea {
     touch-action: manipulation;
   }
 
-  /* Make tree rows easier to tap on mobile */
-  .tree-row {
-    min-height: 32px !important;
-  }
-
   /* Compact typography on small screens */
   h1 {
     font-size: 19px !important;
