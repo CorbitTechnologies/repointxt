@@ -6,6 +6,7 @@ import LocalTab from './components/LocalTab';
 import TabSwitcher from './components/TabSwitcher';
 import ProcessingOptions from './components/ProcessingOptions';
 import BrandLogo from './components/BrandLogo';
+import FaqSection from './components/FaqSection';
 import Icon from './components/Icon';
 import { useRepoManager } from './hooks/useRepoManager';
 import { useTheme } from './hooks/useTheme';
@@ -248,10 +249,10 @@ export default function App() {
 
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
           <h1 style={{ fontSize: isMobile ? 20 : 25, fontWeight: '900', margin: '0 0 4px 0', color: colors.text, letterSpacing: '-0.6px', lineHeight: 1.15 }}>
-            Pack Codebase into Pure LLM Signal
+            Codebase Prompt Generator &amp; LLM Context Packer
           </h1>
-          <p style={{ fontSize: 13, color: isDark ? '#8b949e' : '#57606a', margin: '0 auto 10px', maxWidth: 580, lineHeight: 1.4 }}>
-            From repository to token-dense context in milliseconds. Stream ZIP archives in-memory, auto-select core monorepo paths, and pack for ChatGPT, Claude, and Gemini.
+          <p style={{ fontSize: 13, color: isDark ? '#8b949e' : '#57606a', margin: '0 auto 10px', maxWidth: 620, lineHeight: 1.45 }}>
+            Pack GitHub repo for ChatGPT, Claude 3.5 Sonnet, and Gemini 1.5 Pro. High-performance monorepo context packer with active context window token budget sliders and zero server uploads.
           </p>
 
           {/* Privacy & Trust Badge */}
@@ -406,6 +407,8 @@ export default function App() {
             />
           </div>
         )}
+
+        <FaqSection isDark={isDark} />
       </main>
 
       <footer style={{
@@ -448,7 +451,7 @@ export default function App() {
             onMouseEnter={(e) => (e.currentTarget.style.color = isDark ? '#38bdf8' : '#0969da')}
             onMouseLeave={(e) => (e.currentTarget.style.color = isDark ? '#8b949e' : '#57606a')}
           >
-            FileFryer (Files &amp; Media)
+            FileFryer: In-Browser File &amp; Image Privacy Toolkit
           </a>
           <span>•</span>
           <a

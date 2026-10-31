@@ -37,6 +37,9 @@
   <meta property="twitter:image" content="https://repointxt.corbit.tech/og-banner.png" />
   <meta name="twitter:creator" content="@CorbitTech" />
 
+  <!-- Schema.org JSON-LD: SoftwareApplication + Organization + FAQPage + WebSite + HowTo (Google Rich Snippets) -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6696105559676771"
+     crossorigin="anonymous"></script>
   <!-- Schema.org JSON-LD: SoftwareApplication + Organization + FAQPage (Google Rich Snippets) -->
   <script type="application/ld+json">
     {
@@ -54,6 +57,20 @@
             "https://twitter.com/CorbitTech",
             "https://corbit.tech"
           ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://repointxt.corbit.tech/#website",
+          "url": "https://repointxt.corbit.tech/",
+          "name": "repointxt",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://repointxt.corbit.tech/{search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
         },
         {
           "@type": "SoftwareApplication",
@@ -75,6 +92,32 @@
           "author": {
             "@id": "https://www.corbittechnologies.com/#organization"
           }
+        },
+        {
+          "@type": "HowTo",
+          "@id": "https://repointxt.corbit.tech/#howto",
+          "name": "How to Pack a Codebase into an LLM Prompt Bundle",
+          "description": "Convert GitHub repositories and local folders into token-dense prompt bundles for Claude, Gemini, and ChatGPT in three simple steps.",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "position": 1,
+              "name": "Enter GitHub URL or Drop Local Folder",
+              "text": "Enter your GitHub repository URL or drag and drop local codebase folders/ZIP archives directly into the browser."
+            },
+            {
+              "@type": "HowToStep",
+              "position": 2,
+              "name": "Adjust Target Context Window",
+              "text": "Select your target context window token budget (e.g. Claude 200k, Gemini 1M/2M, or GPT-4o 128k) and customize file selections."
+            },
+            {
+              "@type": "HowToStep",
+              "position": 3,
+              "name": "Copy Token-Dense Prompt Bundle",
+              "text": "Click Generate to create sanitized, XML-bounded prompt blocks automatically copied to your clipboard ready for your AI chat."
+            }
+          ]
         },
         {
           "@type": "FAQPage",
@@ -108,6 +151,7 @@
         }
       ]
     }
+    
   </script>
 
   <style>
@@ -126,7 +170,14 @@
   </style>
  </head>
  <body>
-  <div id="root"></div>
+  <div id="root">
+    <header style="max-width: 1040px; margin: 40px auto; padding: 20px; text-align: center;">
+      <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 8px;">repointxt — 100% Client-Side Codebase to LLM Prompt Packer</h1>
+      <p style="font-size: 14px; color: #8b949e; max-width: 650px; margin: 0 auto 16px; line-height: 1.5;">
+        Convert GitHub repositories and local folders into token-dense context for Claude 3.5 Sonnet, Gemini 1.5 Pro, and GPT-4o with zero server uploads.
+      </p>
+    </header>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
  </body>
 </html>

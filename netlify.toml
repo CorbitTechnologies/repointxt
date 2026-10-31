@@ -24,6 +24,11 @@
   status = 200
 
 [[redirects]]
+  from = "/llms-full.txt"
+  to = "/llms-full.txt"
+  status = 200
+
+[[redirects]]
   from = "/ai-catalog.json"
   to = "/ai-catalog.json"
   status = 200
