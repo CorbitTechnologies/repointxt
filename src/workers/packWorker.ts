@@ -35,7 +35,10 @@ export interface OptimizeRequest {
 export interface OptimizeResponse {
   type: 'OPTIMIZE_CONTENT_SUCCESS';
   id: string;
-  result: string;
+  result: {
+    content: string;
+    redactedSecretsCount: number;
+  };
 }
 
 export interface ErrorResponse {

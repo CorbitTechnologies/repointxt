@@ -274,53 +274,9 @@ const OutputSection: React.FC<OutputSectionProps> = ({
           Launch in:
         </span>
 
-        {/* 1. Google AI Studio */}
+        {/* Claude 5.5 (1M) */}
         <button
-          onClick={() => launchAI('Google AI Studio', 'https://aistudio.google.com/prompts/new_chat')}
-          style={{
-            background: isHugeContext ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-            border: `1px solid ${isHugeContext ? 'rgba(56, 189, 248, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
-            color: isHugeContext ? '#38bdf8' : '#c9d1d9',
-            padding: '3px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-          }}
-          title="Google AI Studio (Supports 2M tokens)"
-        >
-          <BrandIcons.AIStudio />
-          <span>AI Studio (2M)</span>
-        </button>
-
-        {/* 2. Google Gemini */}
-        <button
-          onClick={() => launchAI('Gemini', 'https://gemini.google.com/app')}
-          style={{
-            background: isHugeContext ? 'rgba(66, 133, 244, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-            border: `1px solid ${isHugeContext ? 'rgba(66, 133, 244, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
-            color: isHugeContext ? '#70a5ff' : '#c9d1d9',
-            padding: '3px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-          }}
-          title="Gemini (Supports 1M tokens)"
-        >
-          <BrandIcons.Gemini />
-          <span>Gemini (1M)</span>
-        </button>
-
-        {/* 3. Claude */}
-        <button
-          onClick={() => launchAI('Claude 3.5 / 3.7 Sonnet', 'https://claude.ai/new')}
+          onClick={() => launchAI('Claude 5.5', 'https://claude.ai/new')}
           style={{
             background: 'rgba(217, 119, 6, 0.08)',
             border: '1px solid rgba(217, 119, 6, 0.25)',
@@ -333,17 +289,16 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 5,
-            opacity: currentBatch.tokenCount > 200000 ? 0.6 : 1,
           }}
-          title={currentBatch.tokenCount > 200000 ? 'Exceeds Claude 200k limit' : 'Open in Claude 3.5 / 3.7 (200k)'}
+          title="Open in Claude 5.5 (Supports 1M tokens)"
         >
           <BrandIcons.Claude />
-          <span>Claude (200k)</span>
+          <span>Claude 5.5 (1M)</span>
         </button>
 
-        {/* 4. ChatGPT / OpenAI */}
+        {/* GPT-6 (1.05M) */}
         <button
-          onClick={() => launchAI('ChatGPT (GPT-4o / o1 / o3-mini)', 'https://chatgpt.com/')}
+          onClick={() => launchAI('ChatGPT (GPT-6)', 'https://chatgpt.com/')}
           style={{
             background: 'rgba(16, 163, 127, 0.08)',
             border: '1px solid rgba(16, 163, 127, 0.25)',
@@ -356,19 +311,56 @@ const OutputSection: React.FC<OutputSectionProps> = ({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 5,
-            opacity: currentBatch.tokenCount > 128000 ? 0.6 : 1,
           }}
-          title={currentBatch.tokenCount > 128000 ? 'Exceeds ChatGPT 128k limit' : 'Open in ChatGPT (GPT-4o / o1 / o3-mini)'}
+          title="Open in ChatGPT (GPT-6 Astra supports 1.05M tokens)"
         >
           <BrandIcons.ChatGPT />
-          <span>ChatGPT (128k)</span>
+          <span>GPT-6 (1M)</span>
         </button>
 
-        {isHugeContext && (
-          <span style={{ fontSize: '10px', color: '#8b949e', marginLeft: 'auto', fontStyle: 'italic' }}>
-            💡 750k+ tokens requires Gemini / AI Studio
-          </span>
-        )}
+        {/* Gemini 4 (1M) */}
+        <button
+          onClick={() => launchAI('Gemini 4', 'https://gemini.google.com/app')}
+          style={{
+            background: 'rgba(66, 133, 244, 0.12)',
+            border: '1px solid rgba(66, 133, 244, 0.35)',
+            color: '#70a5ff',
+            padding: '3px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+          }}
+          title="Open in Gemini 4 Argon (1M tokens)"
+        >
+          <BrandIcons.Gemini />
+          <span>Gemini 4 (1M)</span>
+        </button>
+
+        {/* Google AI Studio */}
+        <button
+          onClick={() => launchAI('Google AI Studio', 'https://aistudio.google.com/prompts/new_chat')}
+          style={{
+            background: 'rgba(56, 189, 248, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            color: '#38bdf8',
+            padding: '3px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+          }}
+          title="Google AI Studio (Gemini 4 Argon)"
+        >
+          <BrandIcons.AIStudio />
+          <span>AI Studio (1M)</span>
+        </button>
       </div>
 
       {/* Multi-part batch selector if split */}
