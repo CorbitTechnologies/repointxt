@@ -508,23 +508,21 @@ export const SelectionComponent: React.FC<Props> = ({
         <div style={{
           display: 'flex',
           gap: 5,
-          flexWrap: isMobile ? 'wrap' : 'nowrap',
-          overflowX: isMobile ? 'auto' : 'visible',
-          paddingBottom: isMobile ? 2 : 0,
-          WebkitOverflowScrolling: 'touch'
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          marginTop: isMobile ? 6 : 0,
         }}>
           <button
             onClick={() => applyPreset('core')}
             className="btn-secondary"
             style={{
-              flexShrink: 0,
+              flex: isMobile ? '1 1 auto' : 'initial',
+              padding: isMobile ? '6px 10px' : '4px 9px',
+              fontSize: isMobile ? '12px' : '11.5px',
+              minHeight: isMobile ? 32 : 'auto',
               backgroundColor: activePreset === 'core' ? 'rgba(31, 111, 235, 0.2)' : 'var(--bg-surface)',
               borderColor: activePreset === 'core' ? '#388bfd' : 'var(--border)',
               color: activePreset === 'core' ? '#58a6ff' : '#c9d1d9',
-              fontWeight: activePreset === 'core' ? 600 : 500,
-              padding: '4px 9px',
-              borderRadius: '5px',
-              transition: 'all 0.15s ease'
             }}
           >
             🎯 Core Code
@@ -533,14 +531,13 @@ export const SelectionComponent: React.FC<Props> = ({
             onClick={() => applyPreset('all')}
             className="btn-secondary"
             style={{
-              flexShrink: 0,
+              flex: isMobile ? '1 1 auto' : 'initial',
+              padding: isMobile ? '6px 10px' : '4px 9px',
+              fontSize: isMobile ? '12px' : '11.5px',
+              minHeight: isMobile ? 32 : 'auto',
               backgroundColor: activePreset === 'all' ? 'rgba(31, 111, 235, 0.2)' : 'var(--bg-surface)',
               borderColor: activePreset === 'all' ? '#388bfd' : 'var(--border)',
               color: activePreset === 'all' ? '#58a6ff' : '#c9d1d9',
-              fontWeight: activePreset === 'all' ? 600 : 500,
-              padding: '4px 9px',
-              borderRadius: '5px',
-              transition: 'all 0.15s ease'
             }}
           >
             Select All
@@ -549,36 +546,31 @@ export const SelectionComponent: React.FC<Props> = ({
             onClick={() => applyPreset('none')}
             className="btn-secondary"
             style={{
-              flexShrink: 0,
+              flex: isMobile ? '1 1 auto' : 'initial',
+              padding: isMobile ? '6px 10px' : '4px 9px',
+              fontSize: isMobile ? '12px' : '11.5px',
+              minHeight: isMobile ? 32 : 'auto',
               color: '#8b949e',
-              padding: '4px 9px',
-              borderRadius: '5px',
-              transition: 'all 0.15s ease'
             }}
-            title="Uncheck all files"
           >
-            Deselect All
+            Deselect
           </button>
           {onClearAll && (
             <button
               onClick={onClearAll}
               className="btn-secondary"
               style={{
-                flexShrink: 0,
+                flex: isMobile ? '1 1 auto' : 'initial',
+                padding: isMobile ? '6px 10px' : '4px 9px',
+                fontSize: isMobile ? '12px' : '11.5px',
+                minHeight: isMobile ? 32 : 'auto',
                 color: '#f85149',
                 borderColor: 'rgba(248, 81, 73, 0.3)',
                 backgroundColor: 'rgba(248, 81, 73, 0.08)',
-                padding: '4px 9px',
-                borderRadius: '5px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                transition: 'all 0.15s ease'
               }}
-              title="Remove loaded files and output"
             >
               <Icon name="x" size={11} color="#f85149" />
-              <span>Remove</span>
+              <span>Clear</span>
             </button>
           )}
         </div>
@@ -747,7 +739,7 @@ export const SelectionComponent: React.FC<Props> = ({
               const isIndeterminate = Boolean(isFolder && selectedInFolder > 0 && selectedInFolder < totalInFolder);
 
               // Responsive indentation
-              const indentPx = isMobile ? Math.min(row.depth * 10, 24) : row.depth * 16;
+              const indentPx = isMobile ? Math.min(row.depth * 8, 16) : row.depth * 16;
 
               // Highlighting specific frameworks
               const isFlutterLib = isFolder && (row.path === 'lib' || row.path.endsWith('/lib'));
@@ -1000,28 +992,29 @@ export const SelectionComponent: React.FC<Props> = ({
           className="btn-primary"
           style={{
             width: '100%',
-            padding: '10px 16px',
-            fontSize: '13px',
+            padding: isMobile ? '12px 14px' : '10px 16px',
+            minHeight: isMobile ? 44 : 'auto', // WCAG 44px touch target
+            fontSize: isMobile ? '13px' : '13px',
             fontWeight: 700,
             borderRadius: '6px',
             backgroundColor: justGenerated ? '#238636' : loading ? 'rgba(31, 111, 235, 0.7)' : 'var(--primary)',
-            boxShadow: justGenerated ? '0 0 15px rgba(35, 134, 54, 0.4)' : selectedFiles.length > 0 ? '0 2px 8px rgba(31, 111, 235, 0.3)' : 'none',
-            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8
+            gap: 6
           }}
         >
           <Icon name={justGenerated ? "check" : "zap"} size={16} color={selectedFiles.length === 0 ? 'var(--text-muted)' : '#ffffff'} />
           <span>
             {loading
-              ? `Packing Prompt Context... (${elapsedRunningSec.toFixed(1)}s)`
+              ? `Packing... (${elapsedRunningSec.toFixed(1)}s)`
               : justGenerated
-                ? `Bundle Ready & Copied! (${lastElapsedMs && lastElapsedMs < 1000 ? `${lastElapsedMs}ms` : `${((lastElapsedMs || 0) / 1000).toFixed(1)}s`} ⚡)`
-                : `Generate LLM Context Bundle (${selectedFiles.length.toLocaleString()} files · ~${totalEstimatedTokens.toLocaleString()} tokens)`}
+                ? `Copied to Clipboard! ⚡`
+                : isMobile
+                  ? `Pack ${selectedFiles.length} files (~${Math.round(totalEstimatedTokens / 1000)}k tokens)`
+                  : `Generate LLM Context Bundle (${selectedFiles.length.toLocaleString()} files · ~${totalEstimatedTokens.toLocaleString()} tokens)`}
           </span>
-          {!loading && !justGenerated && (
+          {!loading && !justGenerated && !isMobile && (
             <span style={{
               fontSize: '10.5px',
               opacity: 0.85,
