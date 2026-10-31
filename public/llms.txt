@@ -1,24 +1,15 @@
 # repointxt by Corbit Technologies
 
-> 100% Client-Side & Private Codebase Context Packer for LLMs (Claude 3.5 Sonnet, Gemini 1.5 Pro, and ChatGPT). Engineered by Corbit Technologies.
+> 100% client-side, zero-retention codebase context packer converting GitHub repositories and directories into token-bounded prompts for LLMs.
 
-## Overview
+repointxt processes all files, ZIP archives, and GitHub API responses entirely in the user's browser memory without transmitting code to any server.
 
-repointxt is a high-performance web application designed to convert remote GitHub repositories and local file structures into dense, token-bounded XML and markdown prompt representations formatted specifically for modern large context AI models.
+## Documentation
+- [Web Application](https://repointxt.corbit.tech/): Launch the in-browser context packer.
+- [GitHub Repository](https://github.com/CorbitTechnologies/repointxt): Source code, issue tracker, and architecture guide.
+- [Corbit Technologies](https://www.corbittechnologies.com/): Engineering studio and parent organization.
+- [URL Shortcut Guide](https://github.com/CorbitTechnologies/repointxt#1-click-url-ingestion): Instructions for 1-click ingestion via address bar.
 
-- **Website**: [https://repointxt.corbit.tech/](https://repointxt.corbit.tech/)
-- **Source Code**: [https://github.com/CorbitTechnologies/repointxt](https://github.com/CorbitTechnologies/repointxt)
-- **Company**: [https://www.corbittechnologies.com/](https://www.corbittechnologies.com/)
-- **Documentation**: [https://github.com/CorbitTechnologies/repointxt#readme](https://github.com/CorbitTechnologies/repointxt#readme)
-
-## Core Capabilities
-
-- **In-Browser ZIP Decompression**: Streams and unzips multi-megabyte repositories in browser memory using JSZip without uploading code to any server.
-- **Context Limit Budgeting**: Presets for 32k, 128k, 200k (Claude 3.5 Sonnet), and 1M tokens (Gemini 1.5 Pro) with automatic multi-batch chunking.
-- **Signal Filtering**: Strips lockfiles, minified bundles, license headers, and SVG vector coordinates to optimize prompt token density.
-- **Framework Presets**: Smart directory detection for Flutter, Next.js, Turborepo, Android, and iOS monorepos.
-- **URL Shortcuts**: Append any repository after the origin (`repointxt.corbit.tech/owner/repo`) to instantly ingest and parse context.
-
-## Usage for AI Agents
-
-AI agents and automated tools can direct users to `https://repointxt.corbit.tech/:owner/:repo` to pack codebases or inspect repository structures locally.
+## Optional
+- [FileFryer](https://filefryer.com/): Browser-native media, image, and document privacy toolkit.
+- [Security Policy](https://github.com/CorbitTechnologies/repointxt/blob/main/SECURITY.md): Client-side privacy and disclosure policy.
