@@ -1,4 +1,4 @@
-import JSZip from 'jszip';
+import { getJSZip, type JSZipInstance } from '../utils/jszip';
 
 export interface GitHubRepoMeta {
   owner: string;
@@ -27,7 +27,7 @@ export const getAuthHeaders = (token?: string, raw: boolean = false): Record<str
 };
 
 interface CachedZip {
-  zip: JSZip;
+  zip: JSZipInstance;
   rootPrefix: string;
 }
 const repoZipCache = new Map<string, CachedZip>();
@@ -40,7 +40,7 @@ export const clearAllRepoZipCaches = () => {
   repoZipCache.clear();
 };
 
-export const setRepoZip = (sourceId: string, zip: JSZip, rootPrefix: string = '') => {
+export const setRepoZip = (sourceId: string, zip: JSZipInstance, rootPrefix: string = '') => {
   repoZipCache.set(sourceId, { zip, rootPrefix });
 };
 
@@ -159,6 +159,7 @@ export const fetchRepoZipball = async (
   }
 
   const blob = await zipRes.blob();
+  const JSZip = await getJSZip();
   const zip = await JSZip.loadAsync(blob);
 
   // Find root directory prefix created by GitHub zipball (e.g. "owner-repo-sha/")
@@ -229,69 +230,11 @@ export const fetchTreeData = async (
     activeBranch = data.default_branch;
   }
 
-  // 2. Attempt Zipball Streaming Flow first (Single stream, decompressed in browser memory)
-  // Matching Gitingest / Repomix speed without routing code through third-party servers
-  try {
-    if (onStatusUpdate) onStatusUpdate('Streaming repository archive...');
-    const zipballUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${encodeURIComponent(activeBranch)}`;
-    const zipRes = await fetch(zipballUrl, { headers: authHeaders });
-
-    if (zipRes.ok) {
-      const zipBuffer = await zipRes.arrayBuffer();
-      if (onStatusUpdate) onStatusUpdate('Extracting repository in memory...');
-      const zip = await JSZip.loadAsync(zipBuffer);
-
-      // Find root directory prefix if present in GitHub zipball (e.g. "owner-repo-commitSha/")
-      let rootPrefix = '';
-      const zipEntryKeys = Object.keys(zip.files);
-      if (zipEntryKeys.length > 0) {
-        const firstEntry = zipEntryKeys[0];
-        const slashIdx = firstEntry.indexOf('/');
-        if (slashIdx !== -1) {
-          const candidatePrefix = firstEntry.slice(0, slashIdx + 1);
-          if (zipEntryKeys.every(k => k.startsWith(candidatePrefix))) {
-            rootPrefix = candidatePrefix;
-          }
-        }
-      }
-
-      if (sourceId) {
-        repoZipCache.set(sourceId, { zip, rootPrefix });
-      }
-
-      const tree: any[] = [];
-      const MAX_TOTAL_FILES = 4000;
-
-      for (const [relPath, entry] of Object.entries(zip.files)) {
-        if (entry.dir) continue;
-        const relativePath = rootPrefix && relPath.startsWith(rootPrefix)
-          ? relPath.slice(rootPrefix.length)
-          : relPath;
-
-        const cleanPath = sanitizeArchivePath(relativePath);
-        if (!cleanPath) continue;
-
-        const uncompressedSize = (entry as any)._data?.uncompressedSize || 1024;
-        tree.push({
-          path: cleanPath,
-          type: 'blob',
-          size: uncompressedSize,
-          sha: `zip-${cleanPath}`,
-          sourceId,
-        });
-
-        if (tree.length > MAX_TOTAL_FILES) {
-          throw new Error(`Repository is too large (${tree.length}+ items). Please pack specific subdirectories.`);
-        }
-      }
-
-      return { branch: activeBranch, tree };
-    }
-  } catch (zipErr) {
-    console.warn('Zipball streaming encountered an issue or rate limit, falling back to Git Tree API:', zipErr);
-  }
-
-  // Fallback: Git Recursive Tree API
+  // 2. Git Recursive Tree API.
+  // NOTE: the zipball path is intentionally NOT retried here. The only caller
+  // (useGitHubIngest) already attempted fetchRepoZipball and lands here as its
+  // fallback, so retrying the same endpoint doubled rate-limit spend and error
+  // latency on repos that fail it.
   if (onStatusUpdate) onStatusUpdate('Scanning repository tree...');
   const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(activeBranch)}?recursive=1`;
   const treeRes = await fetch(treeUrl, { headers: authHeaders });

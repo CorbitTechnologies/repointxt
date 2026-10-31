@@ -16,6 +16,13 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
   const { colors, borderRadius, isDark } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // The slider is index-based, so the presets and their hints live in constants.ts.
+  const limitIndex = LLM_CONTEXT_LIMITS.findIndex(l => l.value === options.maxContextTokens);
+  const activeLimit = limitIndex >= 0
+    ? LLM_CONTEXT_LIMITS[limitIndex]
+    : { value: options.maxContextTokens, label: 'Custom', hint: 'Custom budget' };
+  const sliderValue = limitIndex >= 0 ? limitIndex : LLM_CONTEXT_LIMITS.length - 1;
+
   return (
     <div style={{
       backgroundColor: isDark ? 'rgba(22, 27, 34, 0.65)' : 'rgba(246, 248, 250, 0.8)',
@@ -117,30 +124,18 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                   borderRadius: 4,
                   border: '1px solid rgba(56, 139, 253, 0.28)'
                 }}>
-                  {options.maxContextTokens === 2000000
-                    ? '2.0M tokens'
-                    : options.maxContextTokens === 1000000
-                      ? '1.0M tokens'
-                      : options.maxContextTokens === 0
-                        ? 'No Limit'
-                        : `${Math.round(options.maxContextTokens / 1000)}k tokens`}
+                  {activeLimit.value === 0
+                    ? 'No Limit'
+                    : activeLimit.value >= 1000000
+                      ? `${(activeLimit.value / 1000000).toFixed(1)}M tokens`
+                      : `${Math.round(activeLimit.value / 1000)}k tokens`}
                 </span>
                 <span style={{
                   fontSize: 10.5,
-                  color: options.maxContextTokens >= 1000000 ? '#38bdf8' : '#3fb950',
+                  color: activeLimit.value >= 1000000 ? '#38bdf8' : '#3fb950',
                   fontWeight: '600'
                 }}>
-                  {options.maxContextTokens === 2000000
-                    ? 'Gemini 2M'
-                    : options.maxContextTokens === 1000000
-                      ? 'Gemini 1M'
-                      : options.maxContextTokens === 200000
-                        ? 'Claude 3.5/3.7'
-                        : options.maxContextTokens === 128000
-                          ? 'GPT-4o / o1 / o3'
-                          : options.maxContextTokens === 32000
-                            ? 'GPT-4'
-                            : 'Custom'}
+                  {activeLimit.hint}
                 </span>
               </div>
             </div>
@@ -148,56 +143,36 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
             <input
               type="range"
               min="0"
-              max="5"
+              max={LLM_CONTEXT_LIMITS.length - 1}
               step="1"
               className="context-slider"
-              value={
-                options.maxContextTokens === 32000
-                  ? 0
-                  : options.maxContextTokens === 128000
-                    ? 1
-                    : options.maxContextTokens === 200000
-                      ? 2
-                      : options.maxContextTokens === 1000000
-                        ? 3
-                        : options.maxContextTokens === 2000000
-                          ? 4
-                          : 5
-              }
+              value={sliderValue}
               onChange={(e) => {
-                const stepValues = [32000, 128000, 200000, 1000000, 2000000, 0];
-                const selectedVal = stepValues[Number(e.target.value)];
-                updateOption('maxContextTokens', selectedVal);
+                const selected = LLM_CONTEXT_LIMITS[Number(e.target.value)];
+                if (selected) updateOption('maxContextTokens', selected.value);
               }}
             />
 
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              fontSize: isMobile ? 9 : 10,
+              fontSize: isMobile ? 8.5 : 10,
               color: '#8b949e',
               marginTop: 2,
               padding: '0 2px'
             }}>
-              {[
-                { val: 32000, label: '32k' },
-                { val: 128000, label: isMobile ? '128k' : '128k' },
-                { val: 200000, label: isMobile ? '200k' : '200k' },
-                { val: 1000000, label: isMobile ? '1M' : '1M (Default)' },
-                { val: 2000000, label: isMobile ? '2M' : '2M' },
-                { val: 0, label: 'Auto' },
-              ].map(item => {
-                const isActive = options.maxContextTokens === item.val;
+              {LLM_CONTEXT_LIMITS.map(item => {
+                const isActive = options.maxContextTokens === item.value;
                 return (
                   <span
-                    key={item.val}
+                    key={item.value}
                     style={{
                       cursor: 'pointer',
                       color: isActive ? '#58a6ff' : '#8b949e',
                       fontWeight: isActive ? 700 : 500,
                       padding: '2px 4px', // Touch-friendly tap surface
                     }}
-                    onClick={() => updateOption('maxContextTokens', item.val)}
+                    onClick={() => updateOption('maxContextTokens', item.value)}
                   >
                     {item.label}
                   </span>
@@ -223,7 +198,7 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
                 Prompt Output Format
               </div>
               <div style={{ fontSize: 10, color: isDark ? '#8b949e' : '#57606a' }}>
-                XML tags for Claude / GPT-4o, or Markdown code blocks for DeepSeek / open models
+                XML tags for Claude 5.5 / GPT-6, or Markdown code blocks for DeepSeek / open models
               </div>
             </div>
             <div style={{

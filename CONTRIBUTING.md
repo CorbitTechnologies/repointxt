@@ -30,7 +30,7 @@ pnpm install
 # 3. Start local development server
 pnpm dev
 ```
-Open `http://localhost:5174` in your browser.
+Open `http://localhost:5173` in your browser.
 
 ---
 

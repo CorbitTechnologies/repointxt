@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
-import { logCrash } from './services/firebase.ts'
+import { logCrash } from './services/telemetry.ts'
 import './index.css'
 
 // Global Unhandled Errors

@@ -13,6 +13,9 @@ export type IconName =
   | 'x'
   | 'settings'
   | 'minus'
+  | 'plus'
+  | 'shield-check'
+  | 'tag'
   | 'chevron-down'
   | 'chevron-right'
   | 'external-link'
@@ -134,6 +137,27 @@ export const Icon: React.FC<IconProps> = ({ name, size = 16, color = 'currentCol
         );
       case 'activity':
         return <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />;
+      case 'plus':
+        return (
+          <>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </>
+        );
+      case 'shield-check':
+        return (
+          <>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <polyline points="9 12 11 14 15 10" />
+          </>
+        );
+      case 'tag':
+        return (
+          <>
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </>
+        );
       default:
         return null;
     }

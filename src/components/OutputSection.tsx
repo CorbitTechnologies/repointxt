@@ -2,7 +2,7 @@
 import React, { memo, useState } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import Icon from './Icon';
-import { trackEvent } from '../services/firebase';
+import { trackEvent } from '../services/telemetry';
 
 interface OutputSectionProps {
   outputBatches: any[];
@@ -209,7 +209,7 @@ const OutputSection: React.FC<OutputSectionProps> = ({
         </div>
 
         {/* Primary Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: isMobile ? 'flex-end' : 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: isMobile ? 'flex-end' : 'auto', flexWrap: 'wrap' }}>
           <button
             onClick={copyToClipboard}
             className="btn-primary"
@@ -234,6 +234,20 @@ const OutputSection: React.FC<OutputSectionProps> = ({
           >
             <Icon name="download" size={13} color="#8b949e" />
             <span>.txt</span>
+          </button>
+
+          <button
+            onClick={() => {
+              const badgeMarkdown = `[![Prompt with repointxt](https://img.shields.io/badge/Prompt_Context-repointxt-1f6feb?logo=github)](https://repointxt.corbit.tech)`;
+              navigator.clipboard.writeText(badgeMarkdown);
+              window.alert('Copied README badge markdown to clipboard!\n\n' + badgeMarkdown);
+            }}
+            className="btn-secondary"
+            style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '5px', gap: 4 }}
+            title="Copy Markdown badge snippet for project README"
+          >
+            <Icon name="tag" size={13} color="#8b949e" />
+            <span>Badge</span>
           </button>
 
           {onClearOutput && (

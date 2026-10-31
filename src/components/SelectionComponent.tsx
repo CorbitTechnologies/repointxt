@@ -3,7 +3,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import Icon from './Icon';
 import Checkbox from './Checkbox';
 import { FileItem, Source } from '../types';
-import { trackFileFryerOutbound } from '../services/firebase';
+import { AVG_CHARS_PER_TOKEN } from '../utils/fileHelpers';
+import { trackFileFryerOutbound } from '../services/telemetry';
 
 interface Props {
   tree: FileItem[];
@@ -243,7 +244,7 @@ export const SelectionComponent: React.FC<Props> = ({
   }, [selectedFiles]);
 
   const totalEstimatedTokens = useMemo(() => {
-    return Math.ceil(totalSelectedBytes / 3.8);
+    return Math.ceil(totalSelectedBytes / AVG_CHARS_PER_TOKEN);
   }, [totalSelectedBytes]);
 
   const tokenLimit = maxContextTokens || 200000;
@@ -915,8 +916,8 @@ export const SelectionComponent: React.FC<Props> = ({
                     ) : (
                       <span style={{ color: isChecked ? '#8b949e' : '#6e7681' }}>
                         {isMobile
-                          ? `~${Math.ceil((row.item?.size || 0) / 3.8)}t`
-                          : `${formatSize(row.item?.size || 0)} · ~${Math.ceil((row.item?.size || 0) / 3.8)} tokens`}
+                          ? `~${Math.ceil((row.item?.size || 0) / AVG_CHARS_PER_TOKEN)}t`
+                          : `${formatSize(row.item?.size || 0)} · ~${Math.ceil((row.item?.size || 0) / AVG_CHARS_PER_TOKEN)} tokens`}
                       </span>
                     )}
                   </div>

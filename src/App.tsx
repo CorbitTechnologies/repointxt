@@ -10,7 +10,7 @@ import FaqSection from './components/FaqSection';
 import Icon from './components/Icon';
 import { useRepoManager } from './hooks/useRepoManager';
 import { useTheme } from './hooks/useTheme';
-import { trackCompanyOutbound, trackGitHubOutbound } from './services/firebase';
+import { trackCompanyOutbound, trackGitHubOutbound } from './services/telemetry';
 
 const GITHUB_REPO_URL = 'https://github.com/CorbitTechnologies/repointxt';
 
@@ -252,7 +252,7 @@ export default function App() {
             Codebase Prompt Generator &amp; LLM Context Packer
           </h1>
           <p style={{ fontSize: 13, color: isDark ? '#8b949e' : '#57606a', margin: '0 auto 10px', maxWidth: 620, lineHeight: 1.45 }}>
-            Pack GitHub repo for ChatGPT, Claude 3.5 Sonnet, and Gemini 1.5 Pro. High-performance monorepo context packer with active context window token budget sliders and zero server uploads.
+            Pack GitHub repo for ChatGPT (GPT-6), Claude 5.5, and Gemini 4. High-performance monorepo context packer with active context window token budget sliders and zero server uploads.
           </p>
 
           {/* Privacy & Trust Badge */}
@@ -417,9 +417,33 @@ export default function App() {
         textAlign: 'center',
         backgroundColor: isDark ? '#05070a' : '#fafafa',
         display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
         justifyContent: 'center',
         alignItems: 'center'
       }}>
+        <nav aria-label="Guides and comparisons" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', fontSize: 12.5 }}>
+          {[
+            { href: '/alternatives/gitingest/', label: 'gitingest Alternative' },
+            { href: '/alternatives/repo2txt/', label: 'repo2txt Alternative' },
+            { href: '/tools/github-to-claude/', label: 'GitHub to Claude' },
+            { href: '/tools/github-to-gemini/', label: 'GitHub to Gemini' },
+          ].map(({ href, label }) => (
+            <a
+              key={href}
+              href={href}
+              style={{
+                color: isDark ? '#8b949e' : '#57606a',
+                textDecoration: 'none',
+                fontWeight: 600,
+                borderBottom: `1px solid ${isDark ? 'rgba(139,148,158,0.35)' : 'rgba(87,96,106,0.35)'}`,
+                paddingBottom: 1
+              }}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
         <div style={{ fontSize: 12.5, color: isDark ? '#8b949e' : '#57606a', display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', justifyContent: 'center', lineHeight: 1.5 }}>
           <span>In-browser privacy suite by</span>
           <a

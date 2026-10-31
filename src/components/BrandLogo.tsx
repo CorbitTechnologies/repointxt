@@ -1,5 +1,5 @@
 import React from 'react';
-import { trackCompanyOutbound } from '../services/firebase';
+import { trackCompanyOutbound } from '../services/telemetry';
 import { useTheme } from '../hooks/useTheme';
 
 interface BrandLogoProps {

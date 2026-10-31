@@ -45,6 +45,7 @@ export const DEFAULT_IGNORE_PATTERNS = [
   '.nuxt',
   '.svelte-kit',
   '.vercel',
+  '.netlify',
   '.expo',
   '.expo-shared',
 
@@ -110,14 +111,32 @@ export const DEFAULT_IGNORE_PATTERNS = [
   '*.pdf'
 ];
 
-export const LLM_CONTEXT_LIMITS = [
-  { label: '1M (Claude 5.5 / Gemini 4 / GPT-6 Astra - Default)', value: 1000000 },
-  { label: '500K (Deep Context Sub-batch)', value: 500000 },
-  { label: '272K (GPT-6 Astra / Sol Pricing Cliff)', value: 272000 },
-  { label: '200K (Claude Fast Agentic Session)', value: 200000 },
-  { label: '100K (Claude Haiku 5.5 Pricing Cliff)', value: 100000 },
-  { label: 'Auto (No Limit / Full Dump)', value: 0 }
+export interface LlmContextLimit {
+  /** Token budget; 0 means "no limit". */
+  value: number;
+  /** Short label for the slider ticks. */
+  label: string;
+  /** Model hint shown next to the active budget. */
+  hint: string;
+}
+
+/**
+ * Single source of truth for the context-budget slider. The 2M and 128K tiers
+ * are retained because `?model=gemini2m` and `?model=gpt4o` still map to them.
+ */
+export const LLM_CONTEXT_LIMITS: LlmContextLimit[] = [
+  { value: 100000, label: '100K', hint: 'Claude Haiku 5.5' },
+  { value: 128000, label: '128K', hint: 'GPT-4o / o1 / o3 (legacy)' },
+  { value: 200000, label: '200K', hint: 'Claude Agentic' },
+  { value: 272000, label: '272K', hint: 'GPT-6 Astra' },
+  { value: 500000, label: '500K', hint: 'Deep Context' },
+  { value: 1000000, label: '1M', hint: 'Claude 5.5 / Gemini 4 / GPT-6' },
+  { value: 2000000, label: '2M', hint: 'Gemini 2M' },
+  { value: 0, label: 'Auto', hint: 'No Limit' },
 ];
+
+/** Budget applied for new installs (labelled "Default" in the marketing copy). */
+export const DEFAULT_CONTEXT_TOKENS = 1000000;
 
 export const NON_CODE_EXTENSIONS = new Set([
   '.md', '.txt', '.rst', '.svg', '.png', '.jpg', '.jpeg', '.gif',

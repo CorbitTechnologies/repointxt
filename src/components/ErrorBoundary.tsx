@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { logCrash } from '../services/firebase.ts';
+import { logCrash } from '../services/telemetry.ts';
 
 interface Props {
   children: ReactNode;

@@ -3,8 +3,23 @@ import { useTheme } from '../hooks/useTheme';
 import Icon from './Icon';
 import SourceInputs from './SourceInputs';
 
-const GitHubTab: React.FC<any> = (props) => {
-  const { colors, borderRadius, spacing } = useTheme();
+export interface GitHubTabProps {
+  githubUrl: string;
+  setGithubUrl: (url: string) => void;
+  githubBranch: string;
+  setGithubBranch: (branch: string) => void;
+  githubToken: string;
+  setGithubToken: (token: string) => void;
+  fetchGitHubRepo: (isAdding?: boolean) => void;
+  loading: boolean;
+  isMobile?: boolean;
+  urlHistory?: string[];
+  githubRateLimit?: { remaining: number; limit: number } | null;
+  hasSources?: boolean;
+}
+
+const GitHubTab: React.FC<GitHubTabProps> = (props) => {
+  const { colors, borderRadius } = useTheme();
 
   return (
     <div style={{ width: '100%' }}>

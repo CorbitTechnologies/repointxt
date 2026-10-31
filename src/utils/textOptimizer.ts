@@ -1,6 +1,7 @@
+import { scanAndRedactSecrets } from './secretScanner';
+
 const PATTERNS = {
   jsBlockComments: /\/\*[\s\S]*?\*\//g,
-  // Match // comments that are not part of http(s):// or preceded by a colon
   jsComments: /(^|[^\S\r\n]|;|\})\/\/(?!\/)[^\r\n]*/g,
   hashComments: /(^|[^\S\r\n])#[^\r\n]*/g,
   htmlComments: /<!--[\s\S]*?-->/g,
@@ -8,26 +9,39 @@ const PATTERNS = {
   pyDocSingle: /'''[\s\S]*?'''/g,
   multiNewlines: /\n{3,}/g,
   spacesRun: /[ \t]+/g,
+  jsPreserveAndComments: /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`|(?<![a-zA-Z0-9_$)\s])\/(?![/*])(?:\\.|[^/\n\\])+\/[gimsuy]*)|\/\*[\s\S]*?\*\/|(?:\s|^|\b)\/\/(?!\/)[^\r\n]*/g,
+  hashPreserveAndComments: /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*')|(^#!.*$)|((^|[^\S\r\n])#[^\r\n]*)/gm,
+  licenseHeaders: /^(?:\/\*[\s\S]*?(?:copyright|license|all rights reserved)[\s\S]*?\*\/|\/\/(?:[^\n]*(?:copyright|license))[^\n]*\n*)+/i,
+  svgPaths: /d="[MmLlHhVvCcSsQqTtAaZz0-9\s,\.\-]{40,}"/g,
+  svgTargetExt: /\.(svg|tsx|jsx|html)$/i,
+  tailwindClassName: /className=(["'`])([\s\S]*?)\1/g,
+  supabaseRelationships: /Relationships: \[[^\]]*\]/g,
+  supabaseInsert: /Insert: \{[\s\S]*?\}/g,
+  supabaseUpdate: /Update: \{[\s\S]*?\}/g,
+  boundaryClient: /['"]use client['"]/i,
+  boundaryServer: /['"]use server['"]/i,
+  boundaryEdge: /export const runtime = ['"]edge['"]/i,
 };
 
 const JS_FAMILY = new Set(['.js', '.jsx', '.ts', '.tsx', '.java', '.c', '.cpp', '.cs', '.go', '.rs', '.swift', '.kt', '.php']);
 const HASH_FAMILY = new Set(['.py', '.sh', '.bash', '.yaml', '.yml', '.toml', '.rb', '.dockerfile']);
 
+// Only these can contain `className="..."` markup worth compacting.
+const TAILWIND_TARGET = /\.(tsx|jsx|html|htm|vue|svelte|astro|mdx)$/i;
+
 export const stripComments = (content: string, filePath: string): string => {
   const ext = filePath.includes('.') ? filePath.slice(filePath.lastIndexOf('.')).toLowerCase() : '';
 
   if (JS_FAMILY.has(ext)) {
-    // Matches string literals and regex literals first to avoid replacing comments inside strings or regexes (e.g. /https:\/\//)
     return content.replace(
-      /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'|`(?:\\[\s\S]|[^`\\])*`|(?<![a-zA-Z0-9_$)\s])\/(?![/*])(?:\\.|[^/\n\\])+\/[gimsuy]*)|\/\*[\s\S]*?\*\/|(?:\s|^|\b)\/\/(?!\/)[^\r\n]*/g,
+      PATTERNS.jsPreserveAndComments,
       (_match, preserved) => (preserved !== undefined ? preserved : '')
     );
   }
 
   if (HASH_FAMILY.has(ext)) {
-    // Preserve string literals in YAML/TOML/Python (e.g. hex colors "#ffffff" or quoted text)
     let text = content.replace(
-      /("(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*')|(^#!.*$)|((^|[^\S\r\n])#[^\r\n]*)/gm,
+      PATTERNS.hashPreserveAndComments,
       (_match, preservedStr, shebang) => {
         if (preservedStr) return preservedStr;
         if (shebang) return shebang;
@@ -80,25 +94,19 @@ export const refinePackageJson = (content: string): string => {
 };
 
 export const stripLicenseHeaders = (code: string): string => {
-  return code.replace(
-    /^(?:\/\*[\s\S]*?(?:copyright|license|all rights reserved)[\s\S]*?\*\/|\/\/(?:[^\n]*(?:copyright|license))[^\n]*\n*)+/i,
-    ''
-  ).trimStart();
+  return code.replace(PATTERNS.licenseHeaders, '').trimStart();
 };
 
 export const stubSvgPaths = (content: string, filePath: string): string => {
-  if (/\.(svg|tsx|jsx|html)$/i.test(filePath)) {
-    // Replaces giant raw SVG geometry (path coordinates >= 40 chars) with lightweight stub
-    return content.replace(/d="[MmLlHhVvCcSsQqTtAaZz0-9\s,\.\-]{40,}"/g, 'd="/* [SVG PATH DATA] */"');
+  if (PATTERNS.svgTargetExt.test(filePath)) {
+    return content.replace(PATTERNS.svgPaths, 'd="/* [SVG PATH DATA] */"');
   }
   return content;
 };
 
-// 1. Compress massive Tailwind strings (e.g. 50 utility classes down to essential layout)
 export const compactTailwindClasses = (code: string): string => {
-  return code.replace(/className=(["'`])([\s\S]*?)\1/g, (match, quote, classes) => {
+  return code.replace(PATTERNS.tailwindClassName, (match, quote, classes) => {
     const list = classes.trim().split(/\s+/);
-    // If class string has over 14 items, keep first 8 and truncate for AI logic comprehension
     if (list.length > 14) {
       return `className=${quote}${list.slice(0, 8).join(' ')} /* ...styles (${list.length - 8} more) */${quote}`;
     }
@@ -106,29 +114,23 @@ export const compactTailwindClasses = (code: string): string => {
   });
 };
 
-// 2. Compact Supabase generated database.types.ts
-// Reduces 200KB of repetitive Row/Insert/Update definitions into concise table schemas
 export const compactSupabaseTypes = (content: string, filePath: string): string => {
   if (filePath.endsWith('database.types.ts') || filePath.endsWith('supabase.ts')) {
     return content
-      // Strip massive helper wrappers (Relationships, Row, Insert, Update boilerplates)
-      .replace(/Relationships: \[[^\]]*\]/g, 'Relationships: []')
-      .replace(/Insert: \{[\s\S]*?\}/g, '/* [Insert definition] */')
-      .replace(/Update: \{[\s\S]*?\}/g, '/* [Update definition] */');
+      .replace(PATTERNS.supabaseRelationships, 'Relationships: []')
+      .replace(PATTERNS.supabaseInsert, '/* [Insert definition] */')
+      .replace(PATTERNS.supabaseUpdate, '/* [Update definition] */');
   }
   return content;
 };
 
-// 3. Detect Next.js Component Boundary (strictly when explicit directive is present)
 export const detectBoundary = (code: string): 'client' | 'server' | 'edge' | null => {
   const head = code.slice(0, 300);
-  if (/['"]use client['"]/i.test(head)) return 'client';
-  if (/['"]use server['"]/i.test(head)) return 'server';
-  if (/export const runtime = ['"]edge['"]/i.test(head)) return 'edge';
+  if (PATTERNS.boundaryClient.test(head)) return 'client';
+  if (PATTERNS.boundaryServer.test(head)) return 'server';
+  if (PATTERNS.boundaryEdge.test(head)) return 'edge';
   return null;
 };
-
-import { scanAndRedactSecrets } from './secretScanner';
 
 export const optimizeContent = (
   content: string,
@@ -141,7 +143,9 @@ export const optimizeContent = (
     result = refinePackageJson(result);
   }
   result = compactSupabaseTypes(result, filePath);
-  result = compactTailwindClasses(result);
+  if (TAILWIND_TARGET.test(filePath)) {
+    result = compactTailwindClasses(result);
+  }
   if (options.removeComments) {
     result = stripComments(result, filePath);
   }
@@ -151,7 +155,6 @@ export const optimizeContent = (
     result = compressWhitespace(result);
   }
 
-  // Client-side in-content secret scanning & redaction
   const secretResult = scanAndRedactSecrets(result);
 
   return {

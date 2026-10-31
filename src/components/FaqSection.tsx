@@ -16,8 +16,12 @@ const FAQ_ITEMS: FAQItem[] = [
     answer: "repointxt provides active token budgeting (sliders for 32k, 128k, 200k, and 1M tokens), intelligent multi-part chunking for Claude and Gemini, automatic stripping of SVG paths, legal licenses, and build boilerplate, plus native presets for Turborepo, Next.js, and Flutter monorepos—all completely client-side without server retention."
   },
   {
-    question: "How do I pack a GitHub repository for Claude 3.5 Sonnet or Gemini 1.5 Pro?",
-    answer: "Simply enter your GitHub repository URL (or append /owner/repo to repointxt.corbit.tech), select your target context window (e.g. 200k for Claude or 1M for Gemini), select the files you want to include, and click Generate. repointxt will automatically create token-bounded XML prompt blocks ready to paste directly into your AI chat."
+    question: "How do I pack a GitHub repository for Claude 5.5 or Gemini 4?",
+    answer: "Simply enter your GitHub repository URL (or append /owner/repo to repointxt.corbit.tech), select your target context window (e.g. 200K for Claude, 1M for Gemini 4, 2M for extended-context runs), select the files you want to include, and click Generate. repointxt will automatically create token-bounded XML prompt blocks ready to paste directly into your AI chat."
+  },
+  {
+    question: "Is there a 1-click Browser Bookmarklet to jump from GitHub to repointxt?",
+    answer: "Yes! Drag this link to your bookmarks bar: javascript:window.open('https://repointxt.corbit.tech/'+location.pathname.replace(/^\\//,'')). Clicking it while viewing any GitHub repository instantly opens repointxt and scans that repository."
   }
 ];
 
@@ -136,6 +140,85 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ isDark = true }) => {
             </div>
           );
         })}
+      </div>
+
+      {/* Visible comparison table: gives crawlers and AI answer engines a
+          quotable, structured summary instead of prose they have to infer. */}
+      <div style={{ marginTop: 22 }}>
+        <h3 style={{
+          fontSize: 15,
+          fontWeight: 700,
+          margin: '0 0 10px 0',
+          color: isDark ? '#f0f6fc' : '#1f2328',
+          letterSpacing: '-0.2px'
+        }}>
+          repointxt vs. gitingest vs. repo2txt
+        </h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 12.5,
+            lineHeight: 1.5,
+            color: isDark ? '#c9d1d9' : '#424a53'
+          }}>
+            <caption style={{
+              captionSide: 'bottom',
+              textAlign: 'left',
+              paddingTop: 8,
+              fontSize: 11.5,
+              color: isDark ? '#8b949e' : '#57606a'
+            }}>
+              Capability comparison for converting a repository into an LLM prompt.
+            </caption>
+            <thead>
+              <tr>
+                {['Capability', 'repointxt', 'gitingest', 'repo2txt'].map((label) => (
+                  <th
+                    key={label}
+                    scope="col"
+                    style={{
+                      textAlign: 'left',
+                      padding: '8px 10px',
+                      borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
+                      fontWeight: 700,
+                      color: isDark ? '#f0f6fc' : '#1f2328',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Data path', 'Runs entirely in your browser', 'Hosted service fetches the repo server-side', 'Runs in your browser'],
+                ['Token budgeting', 'Target context presets with automatic multi-part splitting', 'Token count is reported', 'Manual file selection'],
+                ['Local folders / ZIP', 'Drop a folder, a ZIP, or paste a GitHub URL', 'Web UI or archive upload', 'GitHub URL'],
+                ['Account required', 'No', 'No', 'No'],
+                ['Price', 'Free', 'Free', 'Free'],
+              ].map((row) => (
+                <tr key={row[0]}>
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={cellIndex}
+                      style={{
+                        padding: '8px 10px',
+                        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+                        verticalAlign: 'top',
+                        fontWeight: cellIndex === 1 ? 600 : 400,
+                        color: cellIndex === 1 ? (isDark ? '#58a6ff' : '#0969da') : undefined
+                      }}
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );

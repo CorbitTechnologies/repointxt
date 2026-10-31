@@ -1,4 +1,4 @@
-import JSZip from 'jszip';
+import { getJSZip } from '../utils/jszip';
 import { optimizeContent } from '../utils/textOptimizer';
 import { sanitizeArchivePath } from '../services/githubService';
 
@@ -41,18 +41,41 @@ export interface OptimizeResponse {
   };
 }
 
+export interface BatchOptimizeRequest {
+  type: 'BATCH_OPTIMIZE_CONTENT';
+  id: string;
+  items: Array<{ content: string; filePath: string }>;
+  options: {
+    removeComments?: boolean;
+    removeExtraWhitespace?: boolean;
+  };
+}
+
+export interface BatchOptimizeResultItem {
+  filePath: string;
+  content: string;
+  redactedSecretsCount: number;
+}
+
+export interface BatchOptimizeResponse {
+  type: 'BATCH_OPTIMIZE_CONTENT_SUCCESS';
+  id: string;
+  results: BatchOptimizeResultItem[];
+}
+
 export interface ErrorResponse {
   type: 'ERROR';
   id: string;
   error: string;
 }
 
-self.onmessage = async (e: MessageEvent<UnzipRequest | OptimizeRequest>) => {
+self.onmessage = async (e: MessageEvent<UnzipRequest | OptimizeRequest | BatchOptimizeRequest>) => {
   const data = e.data;
   if (!data) return;
 
   if (data.type === 'UNZIP_ARCHIVE') {
     try {
+      const JSZip = await getJSZip();
       const zip = await JSZip.loadAsync(data.file);
       const files: UnzipFileResult[] = [];
       const promises: Promise<void>[] = [];
@@ -97,6 +120,30 @@ self.onmessage = async (e: MessageEvent<UnzipRequest | OptimizeRequest>) => {
         type: 'OPTIMIZE_CONTENT_SUCCESS',
         id: data.id,
         result
+      };
+      self.postMessage(response);
+    } catch (err: any) {
+      const response: ErrorResponse = {
+        type: 'ERROR',
+        id: data.id,
+        error: err instanceof Error ? err.message : String(err)
+      };
+      self.postMessage(response);
+    }
+  } else if (data.type === 'BATCH_OPTIMIZE_CONTENT') {
+    try {
+      const results: BatchOptimizeResultItem[] = data.items.map(item => {
+        const res = optimizeContent(item.content, item.filePath, data.options);
+        return {
+          filePath: item.filePath,
+          content: res.content,
+          redactedSecretsCount: res.redactedSecretsCount,
+        };
+      });
+      const response: BatchOptimizeResponse = {
+        type: 'BATCH_OPTIMIZE_CONTENT_SUCCESS',
+        id: data.id,
+        results
       };
       self.postMessage(response);
     } catch (err: any) {
