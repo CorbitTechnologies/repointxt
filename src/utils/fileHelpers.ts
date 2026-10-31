@@ -59,8 +59,30 @@ export const isCodeFile = (path: string): boolean => {
   return !ext || !NON_CODE_EXTENSIONS.has(ext);
 };
 
+import { getEncoding, Tiktoken } from 'js-tiktoken';
+
+let tokenizerInstance: Tiktoken | null = null;
+
+const getTokenizer = (): Tiktoken | null => {
+  if (!tokenizerInstance) {
+    try {
+      tokenizerInstance = getEncoding('o200k_base');
+    } catch {
+      tokenizerInstance = null;
+    }
+  }
+  return tokenizerInstance;
+};
+
 export const estimateTokens = (text: string): number => {
-  return text ? Math.ceil(text.length / 3.8) : 0;
+  if (!text) return 0;
+  try {
+    const enc = getTokenizer();
+    if (enc) {
+      return enc.encode(text).length;
+    }
+  } catch {}
+  return Math.ceil(text.length / 3.8);
 };
 
 export const smartSelectFiles = (treeItems: FileItem[]): FileItem[] => {

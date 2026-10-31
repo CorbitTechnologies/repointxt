@@ -115,6 +115,11 @@ export const LLM_CONTEXT_LIMITS = [
   { label: '1M (Gemini 1.5 Pro / 2.0 Flash)', value: 1000000 },
   { label: '128K (GPT-4o / GPT-4o-mini)', value: 128000 },
   { label: '32K (GPT-4)', value: 32000 },
+  { label: '2M (Gemini 1.5 Pro / 2.0 Flash)', value: 2000000 },
+  { label: '1M (Gemini 1.5 Pro / 2.0 Flash - Default)', value: 1000000 },
+  { label: '200K (Claude 3.5 / 3.7 Sonnet)', value: 200000 },
+  { label: '128K (GPT-4o / o1 / o3-mini)', value: 128000 },
+  { label: '32K (GPT-4 / Local LLMs)', value: 32000 },
   { label: 'Auto (No Limit)', value: 0 }
 ];
 

@@ -128,11 +128,13 @@ export const detectBoundary = (code: string): 'client' | 'server' | 'edge' | nul
   return null;
 };
 
+import { scanAndRedactSecrets } from './secretScanner';
+
 export const optimizeContent = (
   content: string,
   filePath: string,
   options: { removeComments?: boolean; removeExtraWhitespace?: boolean } = {}
-): string => {
+): { content: string; redactedSecretsCount: number } => {
   let result = content;
 
   if (filePath.endsWith('package.json')) {
@@ -149,5 +151,11 @@ export const optimizeContent = (
     result = compressWhitespace(result);
   }
 
-  return result.trim();
+  // Client-side in-content secret scanning & redaction
+  const secretResult = scanAndRedactSecrets(result);
+
+  return {
+    content: secretResult.content.trim(),
+    redactedSecretsCount: secretResult.redactedCount,
+  };
 };

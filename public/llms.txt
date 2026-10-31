@@ -1,12 +1,20 @@
 # repointxt by Corbit Technologies
 
-> 100% Client-Side & Private Codebase Context Packer for LLMs (Claude 3.5 Sonnet, Gemini 1.5 Pro, and ChatGPT). Engineered by Corbit Technologies.
+> 100% client-side, zero-retention codebase context packer converting GitHub repositories and directories into token-bounded prompts for LLMs.
 
-## Overview
+repointxt processes all files, ZIP archives, and GitHub API responses entirely in the user's browser memory without transmitting code to any server.
 
-repointxt is a high-performance web application designed to convert remote GitHub repositories and local file structures into dense, token-bounded XML and markdown prompt representations formatted specifically for modern large context AI models.
+## Documentation
+- [Web Application](https://repointxt.corbit.tech/): Launch the in-browser context packer.
+- [GitHub Repository](https://github.com/CorbitTechnologies/repointxt): Source code, issue tracker, and architecture guide.
+- [Corbit Technologies](https://www.corbittechnologies.com/): Engineering studio and parent organization.
+- [URL Shortcut Guide](https://github.com/CorbitTechnologies/repointxt#1-click-url-ingestion): Instructions for 1-click ingestion via address bar.
 
+## Optional
+- [FileFryer](https://filefryer.com/): Browser-native media, image, and document privacy toolkit.
+- [Security Policy](https://github.com/CorbitTechnologies/repointxt/blob/main/SECURITY.md): Client-side privacy and disclosure policy.
 - **Website**: [https://repointxt.corbit.tech/](https://repointxt.corbit.tech/)
+- **Full Specification**: [https://repointxt.corbit.tech/llms-full.txt](https://repointxt.corbit.tech/llms-full.txt)
 - **Source Code**: [https://github.com/CorbitTechnologies/repointxt](https://github.com/CorbitTechnologies/repointxt)
 - **Company**: [https://www.corbittechnologies.com/](https://www.corbittechnologies.com/)
 - **Documentation**: [https://github.com/CorbitTechnologies/repointxt#readme](https://github.com/CorbitTechnologies/repointxt#readme)
@@ -21,4 +29,4 @@ repointxt is a high-performance web application designed to convert remote GitHu
 
 ## Usage for AI Agents
 
-AI agents and automated tools can direct users to `https://repointxt.corbit.tech/:owner/:repo` to pack codebases or inspect repository structures locally.
+AI agents and automated tools can direct users to `https://repointxt.corbit.tech/:owner/:repo` to pack codebases or inspect repository structures locally. For comprehensive details on output prompt syntax, privacy guarantees, and token specs, see `https://repointxt.corbit.tech/llms-full.txt`.
