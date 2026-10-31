@@ -75,11 +75,11 @@ const ProcessingOptions: React.FC<ProcessingOptionsProps> = ({ options, updateOp
           <span style={{
             fontSize: 10.5,
             fontWeight: '600',
-            color: isDark ? '#58a6ff' : '#0969da',
-            backgroundColor: isDark ? 'rgba(56, 139, 253, 0.1)' : 'rgba(9, 105, 218, 0.08)',
+            color: isDark ? '#58a6ff' : '#0550ae',
+            backgroundColor: isDark ? 'rgba(56, 139, 253, 0.1)' : 'rgba(5, 80, 174, 0.08)',
             padding: '2px 7px',
             borderRadius: 4,
-            border: `1px solid ${isDark ? 'rgba(56, 139, 253, 0.25)' : 'rgba(9, 105, 218, 0.25)'}`,
+            border: `1px solid ${isDark ? 'rgba(56, 139, 253, 0.25)' : 'rgba(5, 80, 174, 0.25)'}`,
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
           }}>
             {options.maxContextTokens >= 1000000 ? `${options.maxContextTokens / 1000000}M` : options.maxContextTokens > 0 ? `${options.maxContextTokens / 1000}K` : 'No Limit'}

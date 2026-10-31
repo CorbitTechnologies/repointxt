@@ -1,6 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import OutputSection from './components/OutputSection';
-import SelectionComponent from './components/SelectionComponent';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import GitHubTab from './components/GitHubTab';
 import LocalTab from './components/LocalTab';
 import TabSwitcher from './components/TabSwitcher';
@@ -11,6 +9,10 @@ import Icon from './components/Icon';
 import { useRepoManager } from './hooks/useRepoManager';
 import { useTheme } from './hooks/useTheme';
 import { trackCompanyOutbound, trackGitHubOutbound } from './services/telemetry';
+
+// Lazy-load heavier components not needed on initial page load (saving ~63.5 KiB from initial bundle)
+const SelectionComponent = lazy(() => import('./components/SelectionComponent'));
+const OutputSection = lazy(() => import('./components/OutputSection'));
 
 const GITHUB_REPO_URL = 'https://github.com/CorbitTechnologies/repointxt';
 
@@ -27,18 +29,33 @@ export default function App() {
   const [repoStars, setRepoStars] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch('https://api.github.com/repos/CorbitTechnologies/repointxt')
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (data && typeof data.stargazers_count === 'number') {
-          setRepoStars(data.stargazers_count);
+    // Fetch GitHub stars during idle / deferred time to keep critical request chain clear
+    const fetchStars = () => {
+      fetch('https://api.github.com/repos/CorbitTechnologies/repointxt')
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => {
+          if (data && typeof data.stargazers_count === 'number') {
+            setRepoStars(data.stargazers_count);
+          }
+        })
+        .catch(() => {});
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const handle = (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(fetchStars, { timeout: 3000 });
+      return () => {
+        if ('cancelIdleCallback' in window) {
+          (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(handle);
         }
-      })
-      .catch(() => {});
+      };
+    } else {
+      const timer = setTimeout(fetchStars, 1500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const formatStars = (stars: number | null): string => {
-    if (stars === null || stars === undefined) return 'Star';
+    if (stars === null || stars === undefined) return '';
     if (stars >= 1000000) return `${(stars / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
     if (stars >= 1000) return `${(stars / 1000).toFixed(1).replace(/\.0$/, '')}k`;
     return stars.toLocaleString();
@@ -250,13 +267,17 @@ export default function App() {
               <span style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: isDark ? '#38bdf8' : '#0969da',
-                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(9, 105, 218, 0.1)',
+                color: isDark ? '#38bdf8' : '#0550ae',
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(5, 80, 174, 0.1)',
                 padding: '1px 6px',
                 borderRadius: 10,
-                marginLeft: 2
+                marginLeft: 2,
+                minWidth: 16,
+                display: 'inline-block',
+                textAlign: 'center',
+                visibility: repoStars !== null ? 'visible' : 'hidden'
               }}>
-                {formatStars(repoStars)}
+                {repoStars !== null ? formatStars(repoStars) : '0'}
               </span>
             </a>
           </div>
@@ -280,14 +301,14 @@ export default function App() {
             gap: 6,
             padding: isMobile ? '6px 12px' : '4px 12px',
             borderRadius: isMobile ? 10 : 20,
-            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : 'rgba(9, 105, 218, 0.08)',
-            border: `1px solid ${isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(9, 105, 218, 0.25)'}`,
+            backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : 'rgba(5, 80, 174, 0.08)',
+            border: `1px solid ${isDark ? 'rgba(56, 189, 248, 0.2)' : 'rgba(5, 80, 174, 0.25)'}`,
             fontSize: isMobile ? 11 : 11.5,
             fontWeight: 600,
-            color: isDark ? '#7dd3fc' : '#0969da',
+            color: isDark ? '#7dd3fc' : '#0550ae',
             textAlign: 'left'
           }}>
-            <Icon name="shield-check" size={isMobile ? 14 : 13} color={isDark ? '#38bdf8' : '#0969da'} />
+            <Icon name="shield-check" size={isMobile ? 14 : 13} color={isDark ? '#38bdf8' : '#0550ae'} />
             <span>
               {isMobile
                 ? '100% Client-Side & Private — Zero server uploads.'
@@ -404,30 +425,34 @@ export default function App() {
 
         {sources.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <SelectionComponent
-              tree={treeData?.tree || []}
-              sources={sources}
-              removeSource={removeSource}
-              onClearAll={clearAll}
-              selectedFiles={selectedFiles}
-              setSelectedFiles={setSelectedFiles}
-              onGenerate={generateText}
-              loading={loading}
-              isMobile={isMobile}
-              maxContextTokens={options.maxContextTokens}
-            />
+            <Suspense fallback={null}>
+              <SelectionComponent
+                tree={treeData?.tree || []}
+                sources={sources}
+                removeSource={removeSource}
+                onClearAll={clearAll}
+                selectedFiles={selectedFiles}
+                setSelectedFiles={setSelectedFiles}
+                onGenerate={generateText}
+                loading={loading}
+                isMobile={isMobile}
+                maxContextTokens={options.maxContextTokens}
+              />
+            </Suspense>
           </div>
         )}
 
         {outputBatches.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <OutputSection
-              outputBatches={outputBatches}
-              activeBatchIndex={activeBatchIndex}
-              setActiveBatchIndex={setActiveBatchIndex}
-              onClearOutput={clearOutput}
-              isMobile={isMobile}
-            />
+            <Suspense fallback={null}>
+              <OutputSection
+                outputBatches={outputBatches}
+                activeBatchIndex={activeBatchIndex}
+                setActiveBatchIndex={setActiveBatchIndex}
+                onClearOutput={clearOutput}
+                isMobile={isMobile}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -476,10 +501,10 @@ export default function App() {
             rel="noopener noreferrer"
             onClick={() => trackCompanyOutbound('footer')}
             style={{
-              color: isDark ? '#58a6ff' : '#0969da',
+              color: isDark ? '#58a6ff' : '#0550ae',
               fontWeight: 700,
               textDecoration: 'none',
-              borderBottom: `1px dashed ${isDark ? '#58a6ff80' : '#0969da80'}`,
+              borderBottom: `1px dashed ${isDark ? '#58a6ff80' : '#0550ae80'}`,
               paddingBottom: 1
             }}
           >
@@ -496,7 +521,7 @@ export default function App() {
               fontWeight: 600,
               transition: 'color 0.15s ease'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = isDark ? '#38bdf8' : '#0969da')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = isDark ? '#38bdf8' : '#0550ae')}
             onMouseLeave={(e) => (e.currentTarget.style.color = isDark ? '#8b949e' : '#57606a')}
           >
             FileFryer: In-Browser File &amp; Image Privacy Toolkit
@@ -508,7 +533,7 @@ export default function App() {
             rel="noopener noreferrer"
             onClick={() => trackGitHubOutbound('footer')}
             style={{
-              color: isDark ? '#58a6ff' : '#0969da',
+              color: isDark ? '#58a6ff' : '#0550ae',
               fontWeight: 600,
               textDecoration: 'none',
               display: 'inline-flex',
